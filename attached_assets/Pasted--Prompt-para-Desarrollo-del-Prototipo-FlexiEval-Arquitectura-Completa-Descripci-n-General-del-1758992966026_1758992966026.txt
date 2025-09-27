@@ -1,0 +1,679 @@
+# Prompt para Desarrollo del Prototipo FlexiEval - Arquitectura Completa
+
+## Descripción General del Sistema
+
+Desarrolla un prototipo funcional de **FlexiEval**, una plataforma web que permite a los docentes evaluar de manera adaptativa a estudiantes con necesidades especiales. La plataforma analiza evidencias de aprendizaje multimodales (texto, video, audio, imagen) junto con rúbricas pedagógicas y la perspectiva del docente sobre el estudiante para generar evaluaciones justas y recursos pedagógicos personalizados.
+
+## Stack Tecnológico Requerido
+
+### **Backend - Java**
+- **Framework**: Spring Boot 3.x
+- **Build Tool**: Maven (evitar Gradle si requiere npm)
+- **Base de datos**: H2 Database (embebida, no requiere instalación externa)
+- **ORM**: Spring Data JPA / Hibernate
+- **API**: REST API con Spring Web
+- **Procesamiento de archivos**: Spring MultipartFile
+- **Simulación de IA**: Servicios Java nativos con algoritmos simulados
+- **Documentación API**: Spring Doc OpenAPI (Swagger)
+
+### **Frontend - Sin NPM**
+- **Framework**: Vanilla JavaScript con ES6+ modules
+- **CSS Framework**: **CDN de Tailwind CSS** (sin npm)
+- **Iconos**: **Lucide Icons via CDN** (sin npm)
+- **HTTP Requests**: Fetch API nativo
+- **Bundling**: No requerido, usar ES6 modules nativos
+- **Servidor estático**: Servido por Spring Boot
+
+### **Base de Datos**
+- **Desarrollo**: H2 Database (embebida)
+- **Persistencia**: Archivo local H2 (.db)
+- **Console**: H2 Web Console habilitada
+- **Migración**: Liquibase o Flyway (opcional)
+
+### **Estructura de Archivos**
+```
+flexieval/
+├── backend/
+│   ├── src/main/java/com/flexieval/
+│   │   ├── FlexievalApplication.java
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── model/
+│   │   ├── repository/
+│   │   └── config/
+│   ├── src/main/resources/
+│   │   ├── static/ (frontend files)
+│   │   ├── application.properties
+│   │   └── data.sql
+│   └── pom.xml
+└── README.md
+```
+
+## Configuración del Backend (Spring Boot)
+
+### **1. Dependencias Maven (pom.xml)**
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.0.2</version>
+    </dependency>
+</dependencies>
+```
+
+### **2. Configuración (application.properties)**
+```properties
+# H2 Database
+spring.datasource.url=jdbc:h2:file:./data/flexieval
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+# JPA
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+
+# File Upload
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# Static Resources
+spring.web.resources.static-locations=classpath:/static/
+```
+
+## Modelos de Datos (Entidades JPA)
+
+### **1. Estudiante.java**
+```java
+@Entity
+@Table(name = "estudiantes")
+public class Estudiante {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String nombre;
+    private Integer edad;
+    private String grado;
+    private String materiasPrincipales;
+    
+    @Column(columnDefinition = "TEXT")
+    private String necesidadesEspeciales;
+    
+    @Embedded
+    private PerspectivaDocente perspectivaDocente;
+    
+    @OneToMany(mappedBy = "estudiante", cascade = CascadeType.ALL)
+    private List<Evidencia> evidencias = new ArrayList<>();
+    
+    @OneToOne(cascade = CascadeType.ALL)
+    private PerfilAprendizaje perfilAprendizaje;
+    
+    // Constructors, getters, setters
+}
+```
+
+### **2. PerspectivaDocente.java (Embeddable)**
+```java
+@Embeddable
+public class PerspectivaDocente {
+    private String atencionEnClase; // Alta, Media, Baja, Variable
+    private String participacionVerbal; // Activa, Moderada, Limitada, No verbal
+    private String interaccionSocial; // Sociable, Selectivo, Reservado, Evita
+    private String modalidadPreferida; // Visual, Auditiva, Kinestésica, Lectora
+    private Integer tiempoConcentracion; // minutos
+    private String necesitaInstrucciones; // Una vez, Repetidas, Escritas, Visuales
+    
+    @Column(columnDefinition = "TEXT")
+    private String fortalezasObservadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String actividadesExitosas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String estrategiasEfectivas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String dificultadesPrincipales;
+    
+    @Column(columnDefinition = "TEXT")
+    private String situacionesConflictivas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String adaptacionesPrevias;
+    
+    private String formaExpresionPreferida;
+    private Integer nivelAutoestima; // 1-10
+    private String motivadoresPrincipales;
+    
+    @Column(columnDefinition = "TEXT")
+    private String comentariosAdicionales;
+    
+    private String necesidadesEspecialesSospechadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String apoyosActuales;
+    
+    // Getters, setters
+}
+```
+
+### **3. Evidencia.java**
+```java
+@Entity
+@Table(name = "evidencias")
+public class Evidencia {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String tituloTarea;
+    private String materia;
+    private LocalDateTime fechaRealizacion;
+    private String tipoEvidencia; // texto, imagen, video, audio
+    private String nombreArchivo;
+    private String rutaArchivo;
+    
+    @Column(columnDefinition = "TEXT")
+    private String rubricaEstandar;
+    
+    private String competenciasEvaluadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String instruccionesOriginales;
+    
+    private Integer tiempoDedicado; // minutos
+    
+    @Column(columnDefinition = "TEXT")
+    private String dificultadesReportadas;
+    
+    @ManyToOne
+    @JoinColumn(name = "estudiante_id")
+    private Estudiante estudiante;
+    
+    @OneToOne(cascade = CascadeType.ALL)
+    private ResultadoAnalisis resultadoAnalisis;
+    
+    // Constructors, getters, setters
+}
+```
+
+### **4. ResultadoAnalisis.java**
+```java
+@Entity
+@Table(name = "resultados_analisis")
+public class ResultadoAnalisis {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private Double puntuacionAdaptada;
+    private String nivelCompetencia;
+    
+    @Column(columnDefinition = "TEXT")
+    private String fortalezasIdentificadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String areasmejora;
+    
+    @Column(columnDefinition = "TEXT")
+    private String modalidadesExitosas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String recomendacionesPedagogicas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String adaptacionesSugeridas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String justificacionEvaluacion;
+    
+    private LocalDateTime fechaAnalisis;
+    
+    // Getters, setters
+}
+```
+
+### **5. PerfilAprendizaje.java**
+```java
+@Entity
+@Table(name = "perfiles_aprendizaje")
+public class PerfilAprendizaje {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String patronAprendizajeDominante;
+    
+    @Column(columnDefinition = "TEXT")
+    private String habilidadesEspecialesDetectadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String necesidadesIdentificadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String estrategiasEnsenanzaRecomendadas;
+    
+    @Column(columnDefinition = "TEXT")
+    private String instrumentosEvaluacionSugeridos;
+    
+    @Column(columnDefinition = "TEXT")
+    private String materialesDidacticosPersonalizados;
+    
+    @Column(columnDefinition = "TEXT")
+    private String planAdaptacionCurricular;
+    
+    private LocalDateTime fechaGeneracion;
+    private LocalDateTime fechaActualizacion;
+    
+    // Getters, setters
+}
+```
+
+## Controladores REST (Spring Web)
+
+### **1. EstudianteController.java**
+```java
+@RestController
+@RequestMapping("/api/estudiantes")
+@CrossOrigin(origins = "*")
+public class EstudianteController {
+    
+    @Autowired
+    private EstudianteService estudianteService;
+    
+    @GetMapping
+    public List<Estudiante> obtenerTodos() {
+        return estudianteService.obtenerTodos();
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<Estudiante> obtenerPorId(@PathVariable Long id) {
+        return estudianteService.obtenerPorId(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public Estudiante crear(@RequestBody EstudianteDTO estudianteDTO) {
+        return estudianteService.crear(estudianteDTO);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<Estudiante> actualizar(@PathVariable Long id, 
+                                                @RequestBody EstudianteDTO estudianteDTO) {
+        return ResponseEntity.ok(estudianteService.actualizar(id, estudianteDTO));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        estudianteService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+
+### **2. EvidenciaController.java**
+```java
+@RestController
+@RequestMapping("/api/evidencias")
+@CrossOrigin(origins = "*")
+public class EvidenciaController {
+    
+    @Autowired
+    private EvidenciaService evidenciaService;
+    
+    @PostMapping("/upload/{estudianteId}")
+    public ResponseEntity<Evidencia> subirEvidencia(
+            @PathVariable Long estudianteId,
+            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam("tituloTarea") String tituloTarea,
+            @RequestParam("materia") String materia,
+            @RequestParam("rubricaEstandar") String rubricaEstandar,
+            @RequestParam("competenciasEvaluadas") String competenciasEvaluadas,
+            @RequestParam("instruccionesOriginales") String instruccionesOriginales,
+            @RequestParam("tiempoDedicado") Integer tiempoDedicado,
+            @RequestParam("dificultadesReportadas") String dificultadesReportadas) {
+        
+        EvidenciaDTO evidenciaDTO = new EvidenciaDTO();
+        evidenciaDTO.setTituloTarea(tituloTarea);
+        evidenciaDTO.setMateria(materia);
+        evidenciaDTO.setRubricaEstandar(rubricaEstandar);
+        evidenciaDTO.setCompetenciasEvaluadas(competenciasEvaluadas);
+        evidenciaDTO.setInstruccionesOriginales(instruccionesOriginales);
+        evidenciaDTO.setTiempoDedicado(tiempoDedicado);
+        evidenciaDTO.setDificultadesReportadas(dificultadesReportadas);
+        
+        Evidencia evidencia = evidenciaService.subirEvidencia(estudianteId, archivo, evidenciaDTO);
+        return ResponseEntity.ok(evidencia);
+    }
+    
+    @GetMapping("/estudiante/{estudianteId}")
+    public List<Evidencia> obtenerPorEstudiante(@PathVariable Long estudianteId) {
+        return evidenciaService.obtenerPorEstudiante(estudianteId);
+    }
+    
+    @PostMapping("/{evidenciaId}/analizar")
+    public ResponseEntity<ResultadoAnalisis> analizarEvidencia(@PathVariable Long evidenciaId) {
+        ResultadoAnalisis resultado = evidenciaService.analizarEvidencia(evidenciaId);
+        return ResponseEntity.ok(resultado);
+    }
+}
+```
+
+### **3. AnalisisController.java**
+```java
+@RestController
+@RequestMapping("/api/analisis")
+@CrossOrigin(origins = "*")
+public class AnalisisController {
+    
+    @Autowired
+    private AnalisisService analisisService;
+    
+    @PostMapping("/perfil/{estudianteId}")
+    public ResponseEntity<PerfilAprendizaje> generarPerfilCompleto(@PathVariable Long estudianteId) {
+        PerfilAprendizaje perfil = analisisService.generarPerfilCompleto(estudianteId);
+        return ResponseEntity.ok(perfil);
+    }
+    
+    @GetMapping("/recursos/{estudianteId}")
+    public ResponseEntity<RecursosPedagogicos> generarRecursos(@PathVariable Long estudianteId) {
+        RecursosPedagogicos recursos = analisisService.generarRecursosPedagogicos(estudianteId);
+        return ResponseEntity.ok(recursos);
+    }
+}
+```
+
+## Servicios de Simulación de IA
+
+### **1. SimuladorIAService.java**
+```java
+@Service
+public class SimuladorIAService {
+    
+    private final Random random = new Random();
+    
+    public ResultadoAnalisis analizarEvidencia(Evidencia evidencia, PerspectivaDocente perspectiva) {
+        // Simular procesamiento con delay
+        try {
+            Thread.sleep(2000 + random.nextInt(3000)); // 2-5 segundos
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        ResultadoAnalisis resultado = new ResultadoAnalisis();
+        
+        // Algoritmo simulado basado en tipo de evidencia y perspectiva del docente
+        resultado.setPuntuacionAdaptada(calcularPuntuacionAdaptada(evidencia, perspectiva));
+        resultado.setNivelCompetencia(determinarNivelCompetencia(evidencia, perspectiva));
+        resultado.setFortalezasIdentificadas(identificarFortalezas(evidencia, perspectiva));
+        resultado.setAreasmejora(identificarAreasMejora(evidencia, perspectiva));
+        resultado.setModalidadesExitosas(determinarModalidadesExitosas(perspectiva));
+        resultado.setRecomendacionesPedagogicas(generarRecomendacionesPedagogicas(perspectiva));
+        resultado.setAdaptacionesSugeridas(generarAdaptacionesSugeridas(evidencia, perspectiva));
+        resultado.setJustificacionEvaluacion(generarJustificacion(evidencia, perspectiva, resultado));
+        resultado.setFechaAnalisis(LocalDateTime.now());
+        
+        return resultado;
+    }
+    
+    private Double calcularPuntuacionAdaptada(Evidencia evidencia, PerspectivaDocente perspectiva) {
+        double puntuacionBase = 70 + random.nextDouble() * 30; // 70-100
+        
+        // Ajustar basado en perspectiva del docente
+        if ("Alta".equals(perspectiva.getAtencionEnClase())) {
+            puntuacionBase += 5;
+        }
+        if ("Activa".equals(perspectiva.getParticipacionVerbal())) {
+            puntuacionBase += 3;
+        }
+        
+        // Ajustar basado en tipo de evidencia vs modalidad preferida
+        if (evidenciaCoincideConModalidad(evidencia, perspectiva)) {
+            puntuacionBase += 10;
+        }
+        
+        return Math.min(100.0, puntuacionBase);
+    }
+    
+    private boolean evidenciaCoincideConModalidad(Evidencia evidencia, PerspectivaDocente perspectiva) {
+        String modalidad = perspectiva.getModalidadPreferida();
+        String tipoEvidencia = evidencia.getTipoEvidencia();
+        
+        return (modalidad.contains("Visual") && tipoEvidencia.equals("imagen")) ||
+               (modalidad.contains("Auditiva") && tipoEvidencia.equals("audio")) ||
+               (modalidad.contains("Kinestésica") && tipoEvidencia.equals("video"));
+    }
+    
+    // Más métodos de simulación...
+}
+```
+
+## Frontend (Vanilla JavaScript + Tailwind CDN)
+
+### **1. index.html**
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlexiEval - Evaluación Adaptativa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-blue-600">FlexiEval</h1>
+                    <span class="ml-2 text-sm text-gray-500">Evaluación Adaptativa</span>
+                </div>
+                <nav class="flex space-x-4">
+                    <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
+                    <button id="btn-estudiantes" class="nav-btn">Estudiantes</button>
+                    <button id="btn-analisis" class="nav-btn">Análisis</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Content will be dynamically loaded here -->
+    </main>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
+```
+
+### **2. js/app.js (Módulo Principal)**
+```javascript
+import { EstudianteService } from './services/EstudianteService.js';
+import { EvidenciaService } from './services/EvidenciaService.js';
+import { UIManager } from './ui/UIManager.js';
+import { Router } from './router/Router.js';
+
+class FlexiEvalApp {
+    constructor() {
+        this.estudianteService = new EstudianteService();
+        this.evidenciaService = new EvidenciaService();
+        this.uiManager = new UIManager();
+        this.router = new Router();
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.setupEventListeners();
+        await this.router.navigateTo('dashboard');
+        await this.loadInitialData();
+    }
+    
+    async setupEventListeners() {
+        document.getElementById('btn-dashboard').addEventListener('click', () => {
+            this.router.navigateTo('dashboard');
+        });
+        
+        document.getElementById('btn-estudiantes').addEventListener('click', () => {
+            this.router.navigateTo('estudiantes');
+        });
+        
+        document.getElementById('btn-analisis').addEventListener('click', () => {
+            this.router.navigateTo('analisis');
+        });
+    }
+    
+    async loadInitialData() {
+        try {
+            const estudiantes = await this.estudianteService.obtenerTodos();
+            this.uiManager.actualizarDashboard(estudiantes);
+        } catch (error) {
+            console.error('Error loading initial data:', error);
+        }
+    }
+}
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    new FlexiEvalApp();
+});
+```
+
+### **3. js/services/EstudianteService.js**
+```javascript
+export class EstudianteService {
+    constructor() {
+        this.baseURL = '/api/estudiantes';
+    }
+    
+    async obtenerTodos() {
+        const response = await fetch(this.baseURL);
+        if (!response.ok) throw new Error('Error fetching estudiantes');
+        return await response.json();
+    }
+    
+    async obtenerPorId(id) {
+        const response = await fetch(`${this.baseURL}/${id}`);
+        if (!response.ok) throw new Error('Error fetching estudiante');
+        return await response.json();
+    }
+    
+    async crear(estudianteData) {
+        const response = await fetch(this.baseURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(estudianteData)
+        });
+        if (!response.ok) throw new Error('Error creating estudiante');
+        return await response.json();
+    }
+    
+    async actualizar(id, estudianteData) {
+        const response = await fetch(`${this.baseURL}/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(estudianteData)
+        });
+        if (!response.ok) throw new Error('Error updating estudiante');
+        return await response.json();
+    }
+    
+    async eliminar(id) {
+        const response = await fetch(`${this.baseURL}/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Error deleting estudiante');
+    }
+}
+```
+
+## Datos de Prueba (data.sql)
+
+```sql
+-- Insertar estudiantes de ejemplo
+INSERT INTO estudiantes (id, nombre, edad, grado, materias_principales, necesidades_especiales, atencion_en_clase, participacion_verbal, interaccion_social, modalidad_preferida, tiempo_concentracion, necesita_instrucciones, fortalezas_observadas, actividades_exitosas, estrategias_efectivas) VALUES 
+(1, 'María González', 8, '3ro Primaria', 'Matemáticas, Ciencias', 'TEA', 'Variable', 'Limitada', 'Selectivo', 'Visual', 20, 'Escritas', 'Excelente memoria visual, pensamiento sistemático, atención al detalle', 'Rompecabezas, mapas conceptuales, actividades con patrones', 'Instrucciones paso a paso, rutinas predecibles, apoyos visuales'),
+(2, 'Carlos Ruiz', 12, '6to Primaria', 'Educación Física, Arte', 'TDAH', 'Baja', 'Activa', 'Sociable', 'Kinestésica', 10, 'Repetidas', 'Creatividad excepcional, habilidades motoras, liderazgo natural', 'Proyectos hands-on, experimentos, actividades grupales', 'Descansos frecuentes, movimiento durante el aprendizaje, objetivos cortos'),
+(3, 'Ana López', 10, '4to Primaria', 'Lengua, Historia', 'Dislexia', 'Alta', 'Moderada', 'Reservado', 'Auditiva', 25, 'Orales', 'Comprensión oral excelente, vocabulario rico, creatividad narrativa', 'Audiolibros, presentaciones orales, discusiones grupales', 'Lectura asistida, tiempo extra, formatos alternativos');
+
+-- Insertar evidencias de ejemplo
+INSERT INTO evidencias (id, titulo_tarea, materia, fecha_realizacion, tipo_evidencia, nombre_archivo, ruta_archivo, rubrica_estandar, competencias_evaluadas, instrucciones_originales, tiempo_dedicado, dificultades_reportadas, estudiante_id) VALUES
+(1, 'Mapa Conceptual - Ecosistemas', 'Ciencias Naturales', CURRENT_TIMESTAMP, 'imagen', 'mapa_ecosistemas_maria.jpg', '/uploads/mapa_ecosistemas_maria.jpg', 'Comprende las relaciones entre organismos en un ecosistema. Criterios: Identificación correcta de componentes (25%), Relaciones entre elementos (25%), Representación visual clara (25%), Vocabulario científico (25%)', 'Comprensión de conceptos científicos, Representación visual de información', 'Crea un mapa conceptual que muestre las relaciones en un ecosistema de bosque', 45, 'Ninguna reportada', 1),
+(2, 'Experimento de Volcanes', 'Ciencias Naturales', CURRENT_TIMESTAMP, 'video', 'experimento_volcan_carlos.mp4', '/uploads/experimento_volcan_carlos.mp4', 'Demuestra comprensión del método científico. Criterios: Hipótesis clara (20%), Procedimiento ordenado (30%), Observaciones precisas (25%), Conclusiones fundamentadas (25%)', 'Método científico, Observación y análisis', 'Realiza el experimento del volcán y documenta todo el proceso', 30, 'Dificultad para mantener la concentración en la escritura del reporte', 2);
+```
+
+## Flujo de Desarrollo
+
+### **Fase 1: Configuración Inicial**
+1. Configurar proyecto Spring Boot con Maven
+2. Configurar H2 Database y JPA
+3. Crear estructura básica de archivos
+
+### **Fase 2: Backend Core**
+1. Implementar entidades JPA
+2. Crear repositorios Spring Data
+3. Desarrollar controladores REST
+4. Implementar servicios de negocio
+
+### **Fase 3: Simulador de IA**
+1. Crear SimuladorIAService
+2. Implementar algoritmos de análisis simulado
+3. Generar resultados coherentes basados en inputs
+
+### **Fase 4: Frontend**
+1. Crear estructura HTML base con Tailwind CDN
+2. Implementar módulos JavaScript ES6
+3. Crear servicios para comunicación con API
+4. Desarrollar UI components y routing
+
+### **Fase 5: Integración**
+1. Conectar frontend con backend
+2. Implementar carga de archivos
+3. Crear flujo completo de usuario
+4. Testing y refinamiento
+
+## Entregables del Prototipo
+
+1. **Aplicación Spring Boot** completa y funcional
+2. **Base de datos H2** con datos de prueba
+3. **API REST** documentada con Swagger
+4. **Frontend vanilla JavaScript** responsive
+5. **Simulador de IA** que genere análisis coherentes
+6. **Documentación** de APIs y uso del sistema
+
+El prototipo debe demostrar el flujo completo: registro de estudiante → carga de evidencias → análisis de IA → generación de recursos pedagógicos, todo sin dependencias de npm y usando tecnologías robustas y confiables.
