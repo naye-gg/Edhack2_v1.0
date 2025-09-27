@@ -11,10 +11,123 @@ import EvidenceUpload from "@/components/evidence-upload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Función para exportar el análisis a PDF
+async function exportAnalysisReportToPDF(analysisData: any) {
+  try {
+    // Importación dinámica de jsPDF para evitar problemas de SSR
+    const jsPDF = (await import('jspdf')).default;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginLeft = 20;
+    const marginRight = 20;
+    const lineHeight = 10;
+    let yPosition = 20;
+
+    // Función auxiliar para agregar texto con saltos de línea automáticos
+    const addText = (text: string, fontSize = 12, isBold = false) => {
+      doc.setFontSize(fontSize);
+      if (isBold) {
+        doc.setFont(undefined, 'bold');
+      } else {
+        doc.setFont(undefined, 'normal');
+      }
+      
+      const maxWidth = pageWidth - marginLeft - marginRight;
+      const lines = doc.splitTextToSize(text, maxWidth);
+      
+      lines.forEach((line: string) => {
+        if (yPosition > 280) { // Nueva página si se queda sin espacio
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, marginLeft, yPosition);
+        yPosition += lineHeight;
+      });
+      yPosition += 5; // Espacio extra después del párrafo
+    };
+
+    // Encabezado
+    doc.setFillColor(37, 99, 235); // Azul
+    doc.rect(0, 0, pageWidth, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('FlexiAdapt - Reporte de Análisis IA', marginLeft, 20);
+    
+    // Resetear color de texto
+    doc.setTextColor(0, 0, 0);
+    yPosition = 45;
+
+    // Información general
+    addText('INFORMACIÓN GENERAL', 16, true);
+    addText(`Fecha: ${new Date().toLocaleDateString()}`);
+    addText(`Hora: ${new Date().toLocaleTimeString()}`);
+    yPosition += 10;
+
+    // Resultados del análisis
+    addText('RESULTADOS DEL ANÁLISIS', 16, true);
+    addText(`Puntuación Adaptada: ${analysisData.adaptedScore}/100`, 14, true);
+    addText(`Nivel de Competencia: ${analysisData.competencyLevel}`, 14, true);
+    addText(`Estilo de Aprendizaje: ${analysisData.learningStyle || 'No especificado'}`, 14, true);
+    yPosition += 5;
+
+    addText('FORTALEZAS IDENTIFICADAS:', 14, true);
+    addText(analysisData.identifiedStrengths || 'No especificado');
+    
+    addText('ÁREAS DE MEJORA:', 14, true);
+    addText(analysisData.improvementAreas || 'No especificado');
+    
+    addText('MODALIDADES DE APRENDIZAJE EXITOSAS:', 14, true);
+    addText(analysisData.successfulModalities || 'No especificado');
+    
+    addText('ESTRATEGIAS DE ENSEÑANZA RECOMENDADAS:', 14, true);
+    addText(analysisData.teachingStrategies || 'No especificado');
+    
+    addText('ACTIVIDADES RECOMENDADAS:', 14, true);
+    addText(analysisData.recommendedActivities || 'No especificado');
+    
+    addText('ADAPTACIONES PARA EVALUACIONES:', 14, true);
+    addText(analysisData.assessmentAdaptations || 'No especificado');
+    
+    addText('RECURSOS NECESARIOS:', 14, true);
+    addText(analysisData.resourcesNeeded || 'No especificado');
+    
+    addText('MODIFICACIONES DEL AULA:', 14, true);
+    addText(analysisData.classroomModifications || 'No especificado');
+    
+    addText('RESUMEN DE RECOMENDACIONES PEDAGÓGICAS:', 14, true);
+    addText(analysisData.pedagogicalRecommendations || 'No especificado');
+    
+    addText('ADAPTACIONES CURRICULARES SUGERIDAS:', 14, true);
+    addText(analysisData.suggestedAdaptations || 'No especificado');
+    
+    addText('JUSTIFICACIÓN DE LA EVALUACIÓN:', 14, true);
+    addText(analysisData.evaluationJustification || 'No especificado');
+    
+    addText(`NIVEL DE CONFIANZA DEL ANÁLISIS: ${Math.round(analysisData.confidence * 100)}%`, 14, true);
+
+    // Footer
+    yPosition = 280;
+    doc.setFontSize(10);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generado por FlexiAdapt IA - ${new Date().toLocaleString()}`, marginLeft, yPosition);
+
+    // Descargar el PDF
+    const fileName = `FlexiAdapt_Analisis_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`;
+    doc.save(fileName);
+    
+  } catch (error) {
+    console.error('Error generando PDF:', error);
+    alert('Error al generar el PDF. Por favor, intenta de nuevo.');
+  }
+}
+
 export default function Evidence() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: evidence = [] as any[], isLoading } = useQuery({
@@ -23,18 +136,43 @@ export default function Evidence() {
 
   const analyzeEvidenceMutation = useMutation({
     mutationFn: async (evidenceId: string) => {
-      const response = await apiRequest("POST", `/api/evidence/${evidenceId}/analyze`);
+      setAnalyzingId(evidenceId);
+      const response = await apiRequest("POST", `/api/evidence/${evidenceId}/ai-analyze`);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setAnalyzingId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/evidence"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       toast({
-        title: "Análisis completado",
-        description: "La evidencia ha sido analizada exitosamente.",
+        title: "Análisis IA completado",
+        description: `Puntuación: ${data.adaptedScore}/100 - Nivel: ${data.competencyLevel}`,
       });
+      
+      // Mostrar modal con el resultado completo del análisis
+      if (window.confirm(`Análisis IA Completado:
+      
+📊 Puntuación Adaptada: ${data.adaptedScore}/100
+🎯 Nivel de Competencia: ${data.competencyLevel}
+🧠 Estilo de Aprendizaje: ${data.learningStyle || 'No especificado'}
+💪 Fortalezas: ${data.identifiedStrengths}
+📈 Áreas de Mejora: ${data.improvementAreas}
+🎨 Modalidades Exitosas: ${data.successfulModalities}
+🎯 Estrategias de Enseñanza: ${data.teachingStrategies || 'Ver reporte completo'}
+📋 Actividades Recomendadas: ${data.recommendedActivities || 'Ver reporte completo'}
+📚 Recursos Necesarios: ${data.resourcesNeeded || 'Ver reporte completo'}
+� Adaptaciones del Aula: ${data.classroomModifications || 'Ver reporte completo'}
+📝 Confianza del Análisis: ${Math.round(data.confidence * 100)}%
+
+¿Deseas exportar el reporte completo en PDF con todas las estrategias pedagógicas?`)) {
+        // Exportar reporte en PDF
+        exportAnalysisReportToPDF(data);
+      }
     },
     onError: (error: any) => {
+      setAnalyzingId(null);
       toast({
         title: "Error en análisis",
         description: "No se pudo analizar la evidencia. Intenta de nuevo.",
@@ -229,11 +367,11 @@ export default function Evidence() {
                         <Button
                           size="sm"
                           onClick={() => analyzeEvidenceMutation.mutate(item.id)}
-                          disabled={analyzeEvidenceMutation.isPending}
+                          disabled={analyzingId === item.id}
                           data-testid={`button-analyze-${item.id}`}
                         >
                           <BrainCircuit className="w-4 h-4 mr-1" />
-                          {analyzeEvidenceMutation.isPending ? "Analizando..." : "Analizar"}
+                          {analyzingId === item.id ? "Analizando..." : "Analizar"}
                         </Button>
                       ) : (
                         <Button variant="outline" size="sm" data-testid={`button-view-analysis-${item.id}`}>

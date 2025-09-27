@@ -1,12 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Edit, BrainCircuit } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, BrainCircuit, MessageCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import StudentChat from "./student-chat";
+import { useState } from "react";
 
 interface StudentCardProps {
   student: any;
@@ -15,6 +18,7 @@ interface StudentCardProps {
 }
 
 export default function StudentCard({ student, showActions = false, className = "" }: StudentCardProps) {
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -160,6 +164,13 @@ export default function StudentCard({ student, showActions = false, className = 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setIsChatOpen(true)}
+                data-testid={`button-chat-student-${student.id}`}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat con IA
+              </DropdownMenuItem>
               <DropdownMenuItem data-testid={`button-view-student-${student.id}`}>
                 <Eye className="w-4 h-4 mr-2" />
                 Ver perfil completo
@@ -176,6 +187,16 @@ export default function StudentCard({ student, showActions = false, className = 
           </DropdownMenu>
         )}
       </div>
+
+      {/* Chat Dialog */}
+      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <DialogContent className="max-w-4xl w-full h-[80vh] max-h-[600px] p-0">
+          <StudentChat 
+            student={student} 
+            onClose={() => setIsChatOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

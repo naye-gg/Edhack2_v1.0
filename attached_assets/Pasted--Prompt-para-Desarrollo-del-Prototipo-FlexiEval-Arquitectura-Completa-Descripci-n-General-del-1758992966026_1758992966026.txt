@@ -1,8 +1,8 @@
-# Prompt para Desarrollo del Prototipo FlexiEval - Arquitectura Completa
+# Prompt para Desarrollo del Prototipo FlexIAdapt - Arquitectura Completa
 
 ## Descripción General del Sistema
 
-Desarrolla un prototipo funcional de **FlexiEval**, una plataforma web que permite a los docentes evaluar de manera adaptativa a estudiantes con necesidades especiales. La plataforma analiza evidencias de aprendizaje multimodales (texto, video, audio, imagen) junto con rúbricas pedagógicas y la perspectiva del docente sobre el estudiante para generar evaluaciones justas y recursos pedagógicos personalizados.
+Desarrolla un prototipo funcional de **FlexIAdapt**, una plataforma web que permite a los docentes evaluar de manera adaptativa a estudiantes con necesidades especiales. La plataforma analiza evidencias de aprendizaje multimodales (texto, video, audio, imagen) junto con rúbricas pedagógicas y la perspectiva del docente sobre el estudiante para generar evaluaciones justas y recursos pedagógicos personalizados.
 
 ## Stack Tecnológico Requerido
 
@@ -32,10 +32,10 @@ Desarrolla un prototipo funcional de **FlexiEval**, una plataforma web que permi
 
 ### **Estructura de Archivos**
 ```
-flexieval/
+FlexIAdapt/
 ├── backend/
-│   ├── src/main/java/com/flexieval/
-│   │   ├── FlexievalApplication.java
+│   ├── src/main/java/com/FlexIAdapt/
+│   │   ├── FlexIAdaptApplication.java
 │   │   ├── controller/
 │   │   ├── service/
 │   │   ├── model/
@@ -82,7 +82,7 @@ flexieval/
 ### **2. Configuración (application.properties)**
 ```properties
 # H2 Database
-spring.datasource.url=jdbc:h2:file:./data/flexieval
+spring.datasource.url=jdbc:h2:file:./data/FlexIAdapt
 spring.datasource.driverClassName=org.h2.Driver
 spring.datasource.username=sa
 spring.datasource.password=password
@@ -480,7 +480,7 @@ public class SimuladorIAService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlexiEval - Evaluación Adaptativa</title>
+    <title>FlexIAdapt - Evaluación Adaptativa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
@@ -494,7 +494,7 @@ public class SimuladorIAService {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-blue-600">FlexiEval</h1>
+                    <h1 class="text-2xl font-bold text-blue-600">FlexIAdapt</h1>
                     <span class="ml-2 text-sm text-gray-500">Evaluación Adaptativa</span>
                 </div>
                 <nav class="flex space-x-4">
@@ -524,7 +524,7 @@ import { EvidenciaService } from './services/EvidenciaService.js';
 import { UIManager } from './ui/UIManager.js';
 import { Router } from './router/Router.js';
 
-class FlexiEvalApp {
+class FlexIAdaptApp {
     constructor() {
         this.estudianteService = new EstudianteService();
         this.evidenciaService = new EvidenciaService();
@@ -566,7 +566,7 @@ class FlexiEvalApp {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    new FlexiEvalApp();
+    new FlexIAdaptApp();
 });
 ```
 

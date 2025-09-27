@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BrainCircuit, LayoutDashboard, Users, FileText, BarChart3, FileBarChart, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, FileText, BarChart3, FileBarChart, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Sidebar() {
@@ -17,11 +17,15 @@ export default function Sidebar() {
       {/* Logo Section */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <BrainCircuit className="w-6 h-6 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+            <img 
+              src="/logo.jpeg" 
+              alt="FlexiAdapt Logo" 
+              className="w-10 h-10 object-cover rounded-lg"
+            />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">FlexiEval</h1>
+            <h1 className="text-xl font-bold text-foreground">FlexiAdapt</h1>
             <p className="text-sm text-muted-foreground">Evaluación Adaptativa</p>
           </div>
         </div>

@@ -1,15 +1,54 @@
+import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless';
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { createClient } from '@libsql/client';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { config } from "./config";
 
-neonConfig.webSocketConstructor = ws;
+// Initialize database based on DATABASE_URL
+let db: any;
+let pool: Pool | undefined;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+if (config.DATABASE_URL.startsWith('file:') || config.DATABASE_URL.includes('.sqlite')) {
+  // SQLite database for development using libsql
+  const client = createClient({
+    url: config.DATABASE_URL,
+  });
+  db = drizzle(client, { schema });
+  
+  console.log('🗄️  Using SQLite database for development');
+} else {
+  // PostgreSQL/Neon database for production
+  neonConfig.webSocketConstructor = ws;
+  
+  pool = new Pool({ 
+    connectionString: config.DATABASE_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  });
+  
+  db = drizzleNeon({ client: pool, schema });
+  
+  console.log('🗄️  Using PostgreSQL/Neon database');
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export { db };
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Closing database connection...');
+  if (pool) {
+    await pool.end();
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Closing database connection...');
+  if (pool) {
+    await pool.end();
+  }
+  process.exit(0);
+});

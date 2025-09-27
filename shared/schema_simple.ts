@@ -83,67 +83,7 @@ export const learningProfiles = sqliteTable("learning_profiles", {
   updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
 });
 
-export const teacherDocuments = sqliteTable("teacher_documents", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  studentId: text("student_id").references(() => students.id),
-  documentType: text("document_type").notNull(), // 'rubric', 'diagnosis', 'report', 'other'
-  title: text("title").notNull(),
-  fileName: text("file_name"),
-  filePath: text("file_path"),
-  extractedContent: text("extracted_content"),
-  uploadedAt: text("uploaded_at").$defaultFn(() => new Date().toISOString()),
-  uploadedBy: text("uploaded_by"),
-});
-
-export const aiGeneratedResources = sqliteTable("ai_generated_resources", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  studentId: text("student_id").references(() => students.id),
-  resourceType: text("resource_type").notNull(), // 'task', 'exercise', 'material', 'strategy'
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  difficulty: text("difficulty"),
-  subject: text("subject"),
-  tags: text("tags"),
-  basedOnEvidenceId: text("based_on_evidence_id").references(() => evidence.id),
-  basedOnAnalysisId: text("based_on_analysis_id").references(() => analysisResults.id),
-  aiPrompt: text("ai_prompt"),
-  aiModel: text("ai_model"),
-  generatedAt: text("generated_at").$defaultFn(() => new Date().toISOString()),
-  isActive: integer("is_active", { mode: 'boolean' }).default(true),
-});
-
-export const aiAnalysisHistory = sqliteTable("ai_analysis_history", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  evidenceId: text("evidence_id").references(() => evidence.id),
-  analysisType: text("analysis_type").notNull(), // 'content', 'competency', 'adaptation', 'resource_generation'
-  aiModel: text("ai_model").notNull(),
-  prompt: text("prompt").notNull(),
-  response: text("response").notNull(),
-  tokensUsed: integer("tokens_used"),
-  processingTime: integer("processing_time"), // milliseconds
-  confidence: real("confidence"), // 0-1 score
-  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-});
-
-// Nuevas tablas para chat por estudiante
-export const studentChats = sqliteTable("student_chats", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  studentId: text("student_id").references(() => students.id),
-  title: text("title").notNull(),
-  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
-});
-
-export const chatMessages = sqliteTable("chat_messages", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  chatId: text("chat_id").references(() => studentChats.id),
-  role: text("role").notNull(), // user, assistant
-  content: text("content").notNull(),
-  studentContext: text("student_context"), // JSON con contexto del estudiante usado
-  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-});
-
-// Insert schemas using Zod
+// Insert schemas using Zod directly
 export const insertStudentSchema = z.object({
   name: z.string().min(1, "Name is required"),
   age: z.number().min(1, "Age must be positive").max(120, "Age must be realistic"),
@@ -211,54 +151,6 @@ export const insertLearningProfileSchema = z.object({
   curricularAdaptationPlan: z.string().optional(),
 });
 
-export const insertTeacherDocumentSchema = z.object({
-  studentId: z.string().min(1, "Student ID is required"),
-  documentType: z.enum(['rubric', 'diagnosis', 'report', 'other']),
-  title: z.string().min(1, "Title is required"),
-  fileName: z.string().optional(),
-  filePath: z.string().optional(),
-  extractedContent: z.string().optional(),
-  uploadedBy: z.string().optional(),
-});
-
-export const insertAiGeneratedResourceSchema = z.object({
-  studentId: z.string().min(1, "Student ID is required"),
-  resourceType: z.enum(['task', 'exercise', 'material', 'strategy']),
-  title: z.string().min(1, "Title is required"),
-  content: z.string().min(1, "Content is required"),
-  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
-  subject: z.string().optional(),
-  tags: z.string().optional(),
-  basedOnEvidenceId: z.string().optional(),
-  basedOnAnalysisId: z.string().optional(),
-  aiPrompt: z.string().optional(),
-  aiModel: z.string().optional(),
-});
-
-export const insertAiAnalysisHistorySchema = z.object({
-  evidenceId: z.string().min(1, "Evidence ID is required"),
-  analysisType: z.enum(['content', 'competency', 'adaptation', 'resource_generation']),
-  aiModel: z.string().min(1, "AI Model is required"),
-  prompt: z.string().min(1, "Prompt is required"),
-  response: z.string().min(1, "Response is required"),
-  tokensUsed: z.number().min(0).optional(),
-  processingTime: z.number().min(0).optional(),
-  confidence: z.number().min(0).max(1).optional(),
-});
-
-// Chat schemas
-export const insertStudentChatSchema = z.object({
-  studentId: z.string().min(1, "Student ID is required"),
-  title: z.string().min(1, "Title is required"),
-});
-
-export const insertChatMessageSchema = z.object({
-  chatId: z.string().min(1, "Chat ID is required"),
-  role: z.enum(['user', 'assistant']),
-  content: z.string().min(1, "Content is required"),
-  studentContext: z.string().optional(),
-});
-
 // Types
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type Student = typeof students.$inferSelect;
@@ -270,42 +162,19 @@ export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
 export type AnalysisResult = typeof analysisResults.$inferSelect;
 export type InsertLearningProfile = z.infer<typeof insertLearningProfileSchema>;
 export type LearningProfile = typeof learningProfiles.$inferSelect;
-export type InsertTeacherDocument = z.infer<typeof insertTeacherDocumentSchema>;
-export type TeacherDocument = typeof teacherDocuments.$inferSelect;
-export type InsertAiGeneratedResource = z.infer<typeof insertAiGeneratedResourceSchema>;
-export type AiGeneratedResource = typeof aiGeneratedResources.$inferSelect;
-export type InsertAiAnalysisHistory = z.infer<typeof insertAiAnalysisHistorySchema>;
-export type AiAnalysisHistory = typeof aiAnalysisHistory.$inferSelect;
-export type InsertStudentChat = z.infer<typeof insertStudentChatSchema>;
-export type StudentChat = typeof studentChats.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
 
 // Extended types for relations
 export type StudentWithRelations = Student & {
   teacherPerspective?: TeacherPerspective;
   evidence?: Evidence[];
   learningProfile?: LearningProfile;
-  teacherDocuments?: TeacherDocument[];
-  aiGeneratedResources?: AiGeneratedResource[];
-  chats?: StudentChat[];
 };
 
 export type EvidenceWithAnalysis = Evidence & {
   analysisResult?: AnalysisResult;
-  aiAnalysisHistory?: AiAnalysisHistory[];
 };
 
 export type EvidenceWithRelations = Evidence & {
   student?: Student;
   analysisResult?: AnalysisResult;
-  aiAnalysisHistory?: AiAnalysisHistory[];
-};
-
-export type ChatWithMessages = StudentChat & {
-  messages?: ChatMessage[];
-};
-
-export type AnalysisResultWithResources = AnalysisResult & {
-  generatedResources?: AiGeneratedResource[];
 };
