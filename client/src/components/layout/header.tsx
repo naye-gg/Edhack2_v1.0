@@ -1,8 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { UserPlus, Upload, Bell } from "lucide-react";
+import { UserPlus, Upload, Bell, LogOut, User } from "lucide-react";
 import { useLocation } from "wouter";
 
-export default function Header() {
+interface Teacher {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  school?: string;
+  grade?: string;
+  subject?: string;
+  phoneNumber?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+interface HeaderProps {
+  teacher: Teacher;
+  onLogout: () => void;
+}
+
+export default function Header({ teacher, onLogout }: HeaderProps) {
   const [location] = useLocation();
 
   const getPageTitle = () => {
@@ -54,6 +73,7 @@ export default function Header() {
             <Bell className="w-5 h-5 text-muted-foreground" />
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full" />
           </Button>
+
         </div>
       </div>
     </header>

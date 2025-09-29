@@ -2,7 +2,26 @@ import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Users, FileText, BarChart3, FileBarChart, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function Sidebar() {
+interface Teacher {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  school?: string;
+  grade?: string;
+  subject?: string;
+  phoneNumber?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+interface SidebarProps {
+  teacher: Teacher;
+  onLogout: () => void;
+}
+
+export default function Sidebar({ teacher, onLogout }: SidebarProps) {
   const [location] = useLocation();
 
   const navigation = [
@@ -26,7 +45,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">FlexiAdapt</h1>
-            <p className="text-sm text-muted-foreground">Evaluación Adaptativa</p>
+            <p className="text-sm text-muted-foreground">Empoderando la educación inclusiva</p>
           </div>
         </div>
       </div>
@@ -67,14 +86,26 @@ export default function Sidebar() {
       {/* User Profile Section */}
       <div className="p-4 border-t border-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
-            <span className="text-accent-foreground font-semibold">MG</span>
+          <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-sm font-semibold">
+              {teacher.name.charAt(0)}{teacher.lastName.charAt(0)}
+            </span>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">María González</p>
-            <p className="text-xs text-muted-foreground">Docente Primaria</p>
+            <p className="text-sm font-medium text-foreground">
+              {teacher.name} {teacher.lastName}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {teacher.subject && teacher.grade ? `${teacher.subject} - ${teacher.grade}` : teacher.email}
+            </p>
           </div>
-          <Button variant="ghost" size="sm" className="p-1 hover:bg-muted" data-testid="button-logout">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="p-1 hover:bg-muted" 
+            onClick={onLogout}
+            data-testid="button-logout"
+          >
             <LogOut className="w-4 h-4 text-muted-foreground" />
           </Button>
         </div>

@@ -28,9 +28,9 @@ async function exportAnalysisReportToPDF(analysisData: any) {
     const addText = (text: string, fontSize = 12, isBold = false) => {
       doc.setFontSize(fontSize);
       if (isBold) {
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
       } else {
-        doc.setFont(undefined, 'normal');
+        doc.setFont('helvetica', 'normal');
       }
       
       const maxWidth = pageWidth - marginLeft - marginRight;
@@ -52,7 +52,7 @@ async function exportAnalysisReportToPDF(analysisData: any) {
     doc.rect(0, 0, pageWidth, 30, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('FlexiAdapt - Reporte de Análisis IA', marginLeft, 20);
     
     // Resetear color de texto
@@ -128,11 +128,13 @@ export default function Evidence() {
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: evidence = [] as any[], isLoading } = useQuery({
     queryKey: ["/api/evidence"],
-  });
+  }) as { data: any[], isLoading: boolean };
 
   const analyzeEvidenceMutation = useMutation({
     mutationFn: async (evidenceId: string) => {
@@ -181,6 +183,11 @@ export default function Evidence() {
     },
   });
 
+  const handleViewAnalysis = (evidence: any) => {
+    setSelectedAnalysis(evidence);
+    setIsAnalysisModalOpen(true);
+  };
+
   const filteredEvidence = evidence.filter((item: any) => {
     if (filterType !== "all" && item.evidenceType !== filterType) return false;
     if (filterStatus !== "all") {
@@ -211,16 +218,10 @@ export default function Evidence() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Gestión de Evidencias</h2>
-          <p className="text-muted-foreground">
-            Administra y analiza las evidencias de aprendizaje de tus estudiantes
-          </p>
-        </div>
+      <div className="flex items-center justify-between mb-6"> 
         <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-upload-evidence">
+            <Button data-testid="button-upload-evidence" className="ml-auto flex items-center">
               <Upload className="w-4 h-4 mr-2" />
               Subir Evidencia
             </Button>
@@ -374,7 +375,12 @@ export default function Evidence() {
                           {analyzingId === item.id ? "Analizando..." : "Analizar"}
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" data-testid={`button-view-analysis-${item.id}`}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewAnalysis(item)}
+                          data-testid={`button-view-analysis-${item.id}`}
+                        >
                           <Eye className="w-4 h-4 mr-1" />
                           Ver Análisis
                         </Button>
@@ -387,6 +393,105 @@ export default function Evidence() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal para mostrar análisis completo */}
+      <Dialog open={isAnalysisModalOpen} onOpenChange={setIsAnalysisModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Análisis Completo - {selectedAnalysis?.taskTitle}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedAnalysis?.analysisResult && (
+            <div className="space-y-6">
+              {/* Información básica */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-600">Puntuación Adaptada</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {parseFloat(selectedAnalysis.analysisResult.adaptedScore).toFixed(1)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Nivel de Competencia</p>
+                  <Badge variant="secondary" className="text-sm">
+                    {selectedAnalysis.analysisResult.competencyLevel}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Fortalezas identificadas */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-green-700">📚 Fortalezas Identificadas</h3>
+                <p className="text-gray-700 bg-green-50 p-3 rounded-md">
+                  {selectedAnalysis.analysisResult.identifiedStrengths}
+                </p>
+              </div>
+
+              {/* Áreas de mejora */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-amber-700">🎯 Áreas de Mejora</h3>
+                <p className="text-gray-700 bg-amber-50 p-3 rounded-md">
+                  {selectedAnalysis.analysisResult.improvementAreas}
+                </p>
+              </div>
+
+              {/* Modalidades exitosas */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-blue-700">✨ Modalidades de Aprendizaje Exitosas</h3>
+                <p className="text-gray-700 bg-blue-50 p-3 rounded-md">
+                  {selectedAnalysis.analysisResult.successfulModalities}
+                </p>
+              </div>
+
+              {/* Recomendaciones pedagógicas */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-purple-700">📝 Cómo Enseñarle</h3>
+                <p className="text-gray-700 bg-purple-50 p-3 rounded-md whitespace-pre-line">
+                  {selectedAnalysis.analysisResult.pedagogicalRecommendations}
+                </p>
+              </div>
+
+              {/* Adaptaciones sugeridas */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-indigo-700">🔧 Cómo Evaluarle</h3>
+                <p className="text-gray-700 bg-indigo-50 p-3 rounded-md whitespace-pre-line">
+                  {selectedAnalysis.analysisResult.suggestedAdaptations}
+                </p>
+              </div>
+
+              {/* Justificación */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-gray-700">💡 Justificación del Análisis</h3>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-md text-sm">
+                  {selectedAnalysis.analysisResult.evaluationJustification}
+                </p>
+              </div>
+
+              {/* Información adicional de la evidencia */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-2">📄 Información de la Evidencia</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Asignatura:</span> {selectedAnalysis.subject}
+                  </div>
+                  <div>
+                    <span className="font-medium">Tipo:</span> {selectedAnalysis.evidenceType}
+                  </div>
+                  <div>
+                    <span className="font-medium">Competencias:</span> {selectedAnalysis.evaluatedCompetencies}
+                  </div>
+                  <div>
+                    <span className="font-medium">Tiempo:</span> {selectedAnalysis.timeSpent} min
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

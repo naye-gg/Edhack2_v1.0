@@ -7,7 +7,7 @@ import { Users, UserPlus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import StudentCard from "@/components/student-card";
 import StudentForm from "@/components/student-form";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useStudents, useCreateStudent } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Students() {
@@ -15,34 +15,27 @@ export default function Students() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
-  const { data: students = [], isLoading } = useQuery({
-    queryKey: ["/api/students"],
-  });
+  const { data: students = [], isLoading } = useStudents();
+  const createStudentMutation = useCreateStudent();
 
-  const createStudentMutation = useMutation({
-    mutationFn: async (studentData: any) => {
-      const response = await apiRequest("POST", "/api/students", studentData);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+  const handleCreateStudent = async (studentData: any) => {
+    try {
+      await createStudentMutation.mutateAsync(studentData);
       setIsCreateOpen(false);
       toast({
-        title: "Estudiante creado",
-        description: "El perfil del estudiante ha sido creado exitosamente.",
+        title: "Éxito",
+        description: "Estudiante creado exitosamente",
       });
-    },
-    onError: (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "No se pudo crear el estudiante. Intenta de nuevo.",
+        description: "Error al crear estudiante: " + (error.message || error),
         variant: "destructive",
       });
-    },
-  });
+    }
+  };
 
-  const filteredStudents = students.filter((student: any) =>
+  const filteredStudents = (students as any[]).filter((student: any) =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.grade.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.mainSubjects.toLowerCase().includes(searchTerm.toLowerCase())
@@ -50,17 +43,10 @@ export default function Students() {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Gestión de Estudiantes</h2>
-          <p className="text-muted-foreground">
-            Administra los perfiles y perspectivas de tus estudiantes
-          </p>
-        </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-student">
+            <Button data-testid="button-create-student" className="ml-auto flex items-center">
               <UserPlus className="w-4 h-4 mr-2" />
               Nuevo Estudiante
             </Button>
@@ -70,7 +56,7 @@ export default function Students() {
               <DialogTitle>Crear Perfil de Estudiante</DialogTitle>
             </DialogHeader>
             <StudentForm
-              onSubmit={(data) => createStudentMutation.mutate(data)}
+              onSubmit={handleCreateStudent}
               onCancel={() => setIsCreateOpen(false)}
               isLoading={createStudentMutation.isPending}
             />

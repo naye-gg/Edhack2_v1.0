@@ -3,8 +3,26 @@ import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 
+// Tabla de profesores
+export const teachers = sqliteTable("teachers", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(), // Se almacenará hasheada
+  name: text("name").notNull(),
+  lastName: text("last_name").notNull(),
+  school: text("school"),
+  grade: text("grade"), // Grado que enseña
+  subject: text("subject"), // Materia principal
+  phoneNumber: text("phone_number"),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+  lastLogin: text("last_login"),
+});
+
 export const students = sqliteTable("students", {
   id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  teacherId: text("teacher_id").references(() => teachers.id).notNull(), // Relación con profesor
   name: text("name").notNull(),
   age: integer("age").notNull(),
   grade: text("grade").notNull(),
@@ -145,6 +163,7 @@ export const chatMessages = sqliteTable("chat_messages", {
 
 // Insert schemas using Zod
 export const insertStudentSchema = z.object({
+  teacherId: z.string().min(1, "Teacher ID is required"),
   name: z.string().min(1, "Name is required"),
   age: z.number().min(1, "Age must be positive").max(120, "Age must be realistic"),
   grade: z.string().min(1, "Grade is required"),
@@ -259,7 +278,27 @@ export const insertChatMessageSchema = z.object({
   studentContext: z.string().optional(),
 });
 
+// Schemas de validación para profesores
+export const insertTeacherSchema = z.object({
+  email: z.string().email("Email debe ser válido"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  lastName: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
+  school: z.string().optional(),
+  grade: z.string().optional(),
+  subject: z.string().optional(),
+  phoneNumber: z.string().optional(),
+});
+
+export const loginTeacherSchema = z.object({
+  email: z.string().email("Email debe ser válido"),
+  password: z.string().min(1, "La contraseña es requerida"),
+});
+
 // Types
+export type InsertTeacher = z.infer<typeof insertTeacherSchema>;
+export type LoginTeacher = z.infer<typeof loginTeacherSchema>;
+export type Teacher = typeof teachers.$inferSelect;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type Student = typeof students.$inferSelect;
 export type InsertTeacherPerspective = z.infer<typeof insertTeacherPerspectiveSchema>;
@@ -282,7 +321,12 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
 // Extended types for relations
+export type TeacherWithStudents = Teacher & {
+  students?: Student[];
+};
+
 export type StudentWithRelations = Student & {
+  teacher?: Teacher;
   teacherPerspective?: TeacherPerspective;
   evidence?: Evidence[];
   learningProfile?: LearningProfile;

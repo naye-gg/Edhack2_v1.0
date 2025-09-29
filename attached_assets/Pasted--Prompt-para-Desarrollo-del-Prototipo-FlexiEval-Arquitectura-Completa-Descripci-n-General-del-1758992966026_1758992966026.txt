@@ -480,7 +480,7 @@ public class SimuladorIAService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlexIAdapt - Evaluación Adaptativa</title>
+    <title>FlexIAdapt - Empoderando la educación inclusiva</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
@@ -495,7 +495,7 @@ public class SimuladorIAService {
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <h1 class="text-2xl font-bold text-blue-600">FlexIAdapt</h1>
-                    <span class="ml-2 text-sm text-gray-500">Evaluación Adaptativa</span>
+                    <span class="ml-2 text-sm text-gray-500">Empoderando la educación inclusiva</span>
                 </div>
                 <nav class="flex space-x-4">
                     <button id="btn-dashboard" class="nav-btn active">Dashboard</button>

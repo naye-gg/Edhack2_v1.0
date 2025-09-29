@@ -1,30 +1,111 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, BrainCircuit, Clock, Upload, UserPlus, TrendingUp, AlertCircle } from "lucide-react";
+import { Users, FileText, BrainCircuit, Clock, Upload, UserPlus, TrendingUp, AlertCircle, Sparkles } from "lucide-react";
 import StatsCard from "@/components/stats-card";
 import StudentCard from "@/components/student-card";
 import EvidenceUpload from "@/components/evidence-upload";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface DashboardStats {
+  totalStudents: number;
+  analyzedEvidence: number;
+  profilesGenerated: number;
+  pendingReview: number;
+  modalityBreakdown?: Array<{
+    name: string;
+    percentage: number;
+  }>;
+  analysisProgress: number;
+}
+
+interface Student {
+  id: string;
+  name: string;
+  age: number;
+  grade: string;
+  [key: string]: any;
+}
+
+interface Evidence {
+  id: string;
+  taskTitle: string;
+  student?: Student;
+  isAnalyzed: boolean;
+  createdAt: string;
+  analysisResult?: {
+    adaptedScore: string;
+  };
+  [key: string]: any;
+}
 
 export default function Dashboard() {
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: stats = {}, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/stats"],
   });
 
-  const { data: students = [], isLoading: studentsLoading } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ["/api/students"],
   });
 
-  const { data: recentEvidence = [], isLoading: evidenceLoading } = useQuery({
+  const { data: recentEvidence = [], isLoading: evidenceLoading } = useQuery<Evidence[]>({
     queryKey: ["/api/evidence"],
   });
 
-  const recentStudents = students?.slice(0, 3) || [];
-  const recentAnalysis = recentEvidence?.slice(0, 3) || [];
+  // Mutación para generar perfiles con IA
+  const generateAIProfileMutation = useMutation({
+    mutationFn: async () => {
+      // Generar perfiles para todos los estudiantes que tengan evidencias analizadas
+      const results = [];
+      for (const student of students) {
+        try {
+          const response = await apiRequest("POST", `/api/students/${student.id}/generate-ai-profile`, {});
+          results.push({ student: student.name, success: true, data: response });
+        } catch (error) {
+          results.push({ student: student.name, success: false, error });
+        }
+      }
+      return results;
+    },
+    onSuccess: (results) => {
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+      
+      if (successful > 0) {
+        toast({
+          title: "Perfiles generados exitosamente",
+          description: `${successful} perfiles creados${failed > 0 ? `, ${failed} fallaron` : ''}`,
+        });
+      }
+      
+      if (failed > 0 && successful === 0) {
+        toast({
+          title: "Error al generar perfiles",
+          description: "No se pudieron generar los perfiles. Revisa que los estudiantes tengan evidencias analizadas.",
+          variant: "destructive",
+        });
+      }
+
+      // Refrescar estadísticas
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "No se pudieron generar los perfiles con IA",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const recentStudents = Array.isArray(students) ? students.slice(0, 3) : [];
+  const recentAnalysis = Array.isArray(recentEvidence) ? recentEvidence.slice(0, 3) : [];
 
   return (
     <div className="p-6">
@@ -34,7 +115,7 @@ export default function Dashboard() {
           title="Total Estudiantes"
           value={stats?.totalStudents || 0}
           icon={Users}
-          trend={`+${Math.floor(Math.random() * 5) + 1} este mes`}
+          trend={(stats?.totalStudents || 0) > 0 ? "Estudiantes registrados" : "No hay estudiantes"}
           isLoading={statsLoading}
           data-testid="stats-total-students"
         />
@@ -42,7 +123,7 @@ export default function Dashboard() {
           title="Evidencias Analizadas"
           value={stats?.analyzedEvidence || 0}
           icon={FileText}
-          trend={`+${Math.floor(Math.random() * 10) + 5} esta semana`}
+          trend={(stats?.analyzedEvidence || 0) > 0 ? "Análisis completados" : "Sin análisis aún"}
           isLoading={statsLoading}
           data-testid="stats-analyzed-evidence"
         />
@@ -50,7 +131,7 @@ export default function Dashboard() {
           title="Perfiles Generados"
           value={stats?.profilesGenerated || 0}
           icon={BrainCircuit}
-          trend={`${Math.floor((stats?.profilesGenerated / Math.max(stats?.totalStudents, 1)) * 100) || 0}% completado`}
+          trend={(stats?.totalStudents || 0) > 0 ? `${Math.floor(((stats?.profilesGenerated || 0) / (stats?.totalStudents || 1)) * 100)}% completado` : "Sin perfiles"}
           isLoading={statsLoading}
           data-testid="stats-profiles-generated"
         />
@@ -58,9 +139,9 @@ export default function Dashboard() {
           title="Pendientes Revisión"
           value={stats?.pendingReview || 0}
           icon={Clock}
-          trend="Requiere atención"
+          trend={(stats?.pendingReview || 0) > 0 ? "Requiere atención" : "Todo al día"}
           isLoading={statsLoading}
-          variant="warning"
+          variant={(stats?.pendingReview || 0) > 0 ? "warning" : undefined}
           data-testid="stats-pending-review"
         />
       </div>
@@ -167,11 +248,19 @@ export default function Dashboard() {
                 variant="outline" 
                 className="w-full justify-start"
                 data-testid="button-generate-profile"
+                onClick={() => generateAIProfileMutation.mutate()}
+                disabled={generateAIProfileMutation.isPending || (stats?.analyzedEvidence || 0) === 0}
               >
-                <BrainCircuit className="w-5 h-5 mr-3 text-accent" />
+                <Sparkles className="w-5 h-5 mr-3 text-accent" />
                 <div className="text-left">
-                  <p className="font-medium">Generar Perfil</p>
-                  <p className="text-xs text-muted-foreground">Análisis completo IA</p>
+                  <p className="font-medium">
+                    {generateAIProfileMutation.isPending ? "Generando..." : "Generar Perfiles IA"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {(stats?.analyzedEvidence || 0) === 0 
+                      ? "Necesitas evidencias analizadas" 
+                      : "Crear perfiles de aprendizaje"}
+                  </p>
                 </div>
               </Button>
               
@@ -256,64 +345,43 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {stats?.modalityBreakdown?.map((modality: any, index: number) => (
-                  <div key={modality.name} data-testid={`modality-${index}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-3 h-3 rounded-full ${
-                          index === 0 ? 'bg-primary' :
-                          index === 1 ? 'bg-accent' :
-                          index === 2 ? 'bg-chart-1' : 'bg-chart-3'
-                        }`} />
-                        <span className="text-sm text-foreground">{modality.name}</span>
+                {stats?.modalityBreakdown && stats.modalityBreakdown.length > 0 ? (
+                  stats.modalityBreakdown.map((modality, index) => (
+                    <div key={modality.name} data-testid={`modality-${index}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            index === 0 ? 'bg-primary' :
+                            index === 1 ? 'bg-accent' :
+                            index === 2 ? 'bg-chart-1' : 'bg-chart-3'
+                          }`} />
+                          <span className="text-sm text-foreground">{modality.name}</span>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {modality.percentage}%
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {modality.percentage}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2 mt-1">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          index === 0 ? 'bg-primary' :
-                          index === 1 ? 'bg-accent' :
-                          index === 2 ? 'bg-chart-1' : 'bg-chart-3'
-                        }`}
-                        style={{ width: `${modality.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                )) || [
-                  { name: 'Visual', percentage: 35 },
-                  { name: 'Auditivo', percentage: 28 },
-                  { name: 'Kinestésico', percentage: 22 },
-                  { name: 'Lecto-escritura', percentage: 15 }
-                ].map((modality, index) => (
-                  <div key={modality.name} data-testid={`modality-default-${index}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-3 h-3 rounded-full ${
-                          index === 0 ? 'bg-primary' :
-                          index === 1 ? 'bg-accent' :
-                          index === 2 ? 'bg-chart-1' : 'bg-chart-3'
-                        }`} />
-                        <span className="text-sm text-foreground">{modality.name}</span>
+                      <div className="w-full bg-muted rounded-full h-2 mt-1">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            index === 0 ? 'bg-primary' :
+                            index === 1 ? 'bg-accent' :
+                            index === 2 ? 'bg-chart-1' : 'bg-chart-3'
+                          }`}
+                          style={{ width: `${modality.percentage}%` }}
+                        />
                       </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {modality.percentage}%
-                      </span>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2 mt-1">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          index === 0 ? 'bg-primary' :
-                          index === 1 ? 'bg-accent' :
-                          index === 2 ? 'bg-chart-1' : 'bg-chart-3'
-                        }`}
-                        style={{ width: `${modality.percentage}%` }}
-                      />
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-2">Sin datos de modalidades</p>
+                    <p className="text-xs text-muted-foreground">
+                      Los datos aparecerán cuando los estudiantes tengan perspectivas del docente registradas
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>

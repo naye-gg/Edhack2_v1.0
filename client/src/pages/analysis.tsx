@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, TrendingUp, FileBarChart, Users, BrainCircuit, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Analysis() {
-  const { data: students = [] as any[], isLoading: studentsLoading } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ["/api/students"],
   });
 
-  const { data: evidence = [] as any[], isLoading: evidenceLoading } = useQuery({
+  const { data: evidence = [], isLoading: evidenceLoading } = useQuery({
     queryKey: ["/api/evidence"],
   });
 
@@ -17,8 +18,10 @@ export default function Analysis() {
     queryKey: ["/api/stats"],
   });
 
-  const analyzedEvidence = evidence.filter((item: any) => item.isAnalyzed);
-  const studentsWithProfiles = students.filter((student: any) => student.learningProfile);
+  const studentsArray = students as any[];
+  const evidenceArray = evidence as any[];
+  const analyzedEvidence = evidenceArray.filter((item: any) => item.isAnalyzed);
+  const studentsWithProfiles = studentsArray.filter((student: any) => student.learningProfile);
 
   const getAverageScore = (studentEvidence: any[]) => {
     const scores = studentEvidence
@@ -39,20 +42,130 @@ export default function Analysis() {
   };
 
   const competencyDist = getCompetencyDistribution();
+  const { toast } = useToast();
+
+  // Función para exportar el reporte de estudiantes a Excel
+  const exportStudentReport = async () => {
+    try {
+      // Importación dinámica de xlsx
+      const XLSX = await import('xlsx');
+      
+      // Preparar los datos para el Excel
+      const studentData = studentsArray.map((student: any) => {
+        const studentEvidence = evidenceArray.filter((e: any) => e.studentId === student.id && e.isAnalyzed);
+        const avgScore = getAverageScore(studentEvidence);
+        
+        // Obtener el perfil de aprendizaje
+        const learningProfile = student.learningProfile || {};
+        const preferredStyle = learningProfile.preferredLearningStyle || 'No evaluado';
+        const strengths = learningProfile.strengths?.join(', ') || 'No evaluado';
+        const areasForImprovement = learningProfile.areasForImprovement?.join(', ') || 'No evaluado';
+        const recommendations = learningProfile.recommendations?.join(', ') || 'No evaluado';
+        
+        // Obtener las competencias más recientes
+        const latestEvidence = studentEvidence.sort((a: any, b: any) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        
+        const competencyLevel = latestEvidence?.analysisResult?.competencyLevel || 'No evaluado';
+        const detailedAnalysis = latestEvidence?.analysisResult?.detailedAnalysis || 'No disponible';
+        
+        return {
+          'Nombre del Estudiante': student.name,
+          'Edad': student.age,
+          'Grado': student.grade,
+          'Materias Principales': student.mainSubjects,
+          'Estilo de Aprendizaje Preferido': preferredStyle,
+          'Fortalezas': strengths,
+          'Áreas de Mejora': areasForImprovement,
+          'Recomendaciones': recommendations,
+          'Promedio de Calificaciones': avgScore,
+          'Nivel de Competencia Actual': competencyLevel,
+          'Total de Evidencias Analizadas': studentEvidence.length,
+          'Análisis Detallado Más Reciente': detailedAnalysis,
+          'Fecha de Última Evaluación': latestEvidence?.createdAt ? 
+            new Date(latestEvidence.createdAt).toLocaleDateString('es-ES') : 'No disponible'
+        };
+      });
+
+      // Crear el libro de Excel
+      const workbook = XLSX.utils.book_new();
+      
+      // Crear hoja con datos de estudiantes
+      const worksheet = XLSX.utils.json_to_sheet(studentData);
+      
+      // Ajustar el ancho de las columnas
+      const columnWidths = [
+        { wch: 25 }, // Nombre del Estudiante
+        { wch: 8 },  // Edad
+        { wch: 15 }, // Grado
+        { wch: 30 }, // Materias Principales
+        { wch: 25 }, // Estilo de Aprendizaje
+        { wch: 40 }, // Fortalezas
+        { wch: 40 }, // Áreas de Mejora
+        { wch: 50 }, // Recomendaciones
+        { wch: 15 }, // Promedio
+        { wch: 20 }, // Nivel de Competencia
+        { wch: 15 }, // Total Evidencias
+        { wch: 50 }, // Análisis Detallado
+        { wch: 18 }  // Fecha de Última Evaluación
+      ];
+      worksheet['!cols'] = columnWidths;
+      
+      // Agregar la hoja al libro
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Estudiantes');
+      
+      // Crear hoja de resumen
+      const summaryData = [
+        { 'Métrica': 'Total de Estudiantes', 'Valor': studentsArray.length },
+        { 'Métrica': 'Estudiantes con Perfil Generado', 'Valor': studentsWithProfiles.length },
+        { 'Métrica': 'Total de Evidencias Analizadas', 'Valor': analyzedEvidence.length },
+        { 'Métrica': 'Promedio General de Calificaciones', 'Valor': analyzedEvidence.length > 0 ? 
+          (analyzedEvidence.reduce((sum: number, item: any) => 
+            sum + parseFloat(item.analysisResult?.adaptedScore || 0), 0
+          ) / analyzedEvidence.length).toFixed(1) : 'N/A' },
+        { 'Métrica': 'Estudiantes Nivel Avanzado', 'Valor': competencyDist.Avanzado },
+        { 'Métrica': 'Estudiantes Nivel Competente', 'Valor': competencyDist.Competente },
+        { 'Métrica': 'Estudiantes En Desarrollo', 'Valor': competencyDist['En desarrollo'] },
+        { 'Métrica': 'Estudiantes Iniciando', 'Valor': competencyDist.Iniciando },
+      ];
+      
+      const summaryWorksheet = XLSX.utils.json_to_sheet(summaryData);
+      summaryWorksheet['!cols'] = [{ wch: 35 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Resumen General');
+      
+      // Generar y descargar el archivo
+      const today = new Date().toISOString().split('T')[0];
+      const fileName = `Reporte_Estudiantes_${today}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      toast({
+        title: "Éxito",
+        description: `Reporte exportado como ${fileName}`,
+      });
+      
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      toast({
+        title: "Error",
+        description: "Error al exportar el reporte. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Análisis y Reportes</h2>
-          <p className="text-muted-foreground">
-            Visualiza el progreso y rendimiento de tus estudiantes
-          </p>
-        </div>
-        <Button variant="outline" data-testid="button-export-report">
+      <div className="flex justify-end mb-6">
+        <Button 
+          variant="outline" 
+          data-testid="button-export-report"
+          onClick={exportStudentReport}
+          disabled={studentsLoading || studentsArray.length === 0}
+        >
           <Download className="w-4 h-4 mr-2" />
-          Exportar Reporte
+          Exportar Reporte Excel
         </Button>
       </div>
 
@@ -116,8 +229,8 @@ export default function Analysis() {
               <div>
                 <p className="text-sm text-muted-foreground">Tasa de Completitud</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {students.length > 0 ? 
-                    Math.round((studentsWithProfiles.length / students.length) * 100) : 0}%
+                  {studentsArray.length > 0 ?
+                    Math.round((studentsWithProfiles.length / studentsArray.length) * 100) : 0}%
                 </p>
               </div>
               <div className="w-12 h-12 bg-chart-3/10 rounded-lg flex items-center justify-center">
@@ -148,15 +261,15 @@ export default function Analysis() {
                   </div>
                 ))}
               </div>
-            ) : students.length === 0 ? (
+            ) : studentsArray.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No hay datos de estudiantes disponibles</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {students.map((student: any) => {
-                  const studentEvidence = evidence.filter((e: any) => e.studentId === student.id && e.isAnalyzed);
+                {studentsArray.map((student: any) => {
+                  const studentEvidence = evidenceArray.filter((e: any) => e.studentId === student.id && e.isAnalyzed);
                   const avgScore = getAverageScore(studentEvidence);
                   
                   return (
