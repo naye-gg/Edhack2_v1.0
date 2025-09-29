@@ -189,20 +189,6 @@ export class DatabaseStorage implements IStorage {
 
     return evidenceData.map((e: any) => ({
       ...e.evidence,
-      // Convert snake_case to camelCase for frontend compatibility
-      studentId: e.evidence.student_id,
-      taskTitle: e.evidence.task_title,
-      completionDate: e.evidence.completion_date,
-      evidenceType: e.evidence.evidence_type,
-      fileName: e.evidence.file_name,
-      filePath: e.evidence.file_path,
-      standardRubric: e.evidence.standard_rubric,
-      evaluatedCompetencies: e.evidence.evaluated_competencies,
-      originalInstructions: e.evidence.original_instructions,
-      timeSpent: e.evidence.time_spent,
-      reportedDifficulties: e.evidence.reported_difficulties,
-      isAnalyzed: e.evidence.is_analyzed,
-      createdAt: e.evidence.created_at,
       student: e.students || undefined,
       analysisResult: e.analysis_results || undefined,
     }));
@@ -218,20 +204,6 @@ export class DatabaseStorage implements IStorage {
 
     return evidenceData.map((e: any) => ({
       ...e.evidence,
-      // Convert snake_case to camelCase for frontend compatibility
-      studentId: e.evidence.student_id,
-      taskTitle: e.evidence.task_title,
-      completionDate: e.evidence.completion_date,
-      evidenceType: e.evidence.evidence_type,
-      fileName: e.evidence.file_name,
-      filePath: e.evidence.file_path,
-      standardRubric: e.evidence.standard_rubric,
-      evaluatedCompetencies: e.evidence.evaluated_competencies,
-      originalInstructions: e.evidence.original_instructions,
-      timeSpent: e.evidence.time_spent,
-      reportedDifficulties: e.evidence.reported_difficulties,
-      isAnalyzed: e.evidence.is_analyzed,
-      createdAt: e.evidence.created_at,
       student: e.students || undefined,
       analysisResult: e.analysis_results || undefined,
     }));

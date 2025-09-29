@@ -18,6 +18,8 @@ export function getAuthHeaders() {
 // Función para hacer fetch autenticado
 export async function authenticatedFetch(url: string, options: RequestInit = {}) {
   const headers = getAuthHeaders();
+  console.log('🔵 Making authenticated request to:', url);
+  console.log('🔵 Headers:', headers);
   
   const response = await fetch(url, {
     ...options,

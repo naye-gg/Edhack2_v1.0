@@ -476,6 +476,135 @@ Responde ÚNICAMENTE en el siguiente formato JSON (array de 3 objetos):
       return "Lo siento, no puedo acceder a la información del estudiante en este momento. Por favor, intenta nuevamente más tarde.";
     }
   }
+
+  async generateLearningProfile(data: {
+    studentId: string;
+    studentInfo: any;
+    teacherPerspective?: any;
+    allAnalysisResults: any[];
+  }): Promise<{
+    dominantLearningPattern: string;
+    cognitiveStrengths: string;
+    learningChallenges: string;
+    motivationalFactors: string;
+    recommendedTeachingApproaches: string;
+    assessmentRecommendations: string;
+    resourcesAndTools: string;
+    confidenceLevel: number;
+  }> {
+    console.log('🧠 Generating learning profile with AI...');
+    
+    try {
+      const { studentInfo, teacherPerspective, allAnalysisResults } = data;
+      
+      const prompt = `
+Como especialista en pedagogía adaptativa, analiza la siguiente información del estudiante y genera un perfil de aprendizaje completo:
+
+INFORMACIÓN DEL ESTUDIANTE:
+- Nombre: ${studentInfo.name}
+- Edad: ${studentInfo.age} años
+- Grado: ${studentInfo.grade}
+- Materias principales: ${studentInfo.mainSubjects}
+- Necesidades especiales: ${studentInfo.specialNeeds}
+
+PERSPECTIVA DEL PROFESOR:
+${teacherPerspective ? `
+- Observaciones de comportamiento: ${teacherPerspective.behaviorObservations || 'No especificadas'}
+- Fortalezas identificadas: ${teacherPerspective.identifiedStrengths || 'No especificadas'}
+- Desafíos observados: ${teacherPerspective.observedChallenges || 'No especificados'}
+- Estrategias exitosas: ${teacherPerspective.successfulStrategies || 'No especificadas'}
+` : 'No disponible'}
+
+ANÁLISIS PREVIOS DE EVIDENCIAS (${allAnalysisResults.length} análisis):
+${allAnalysisResults.map((analysis, index) => `
+Análisis ${index + 1}:
+- Nivel de competencia: ${analysis.competencyLevel}
+- Puntuación: ${analysis.adaptedScore}/100
+- Estilo de aprendizaje: ${analysis.learningStyle || 'No identificado'}
+- Fortalezas: ${analysis.identifiedStrengths}
+- Áreas de mejora: ${analysis.improvementAreas}
+- Modalidades exitosas: ${analysis.successfulModalities}
+`).join('\n')}
+
+Por favor, genera un perfil de aprendizaje integral que incluya:
+
+1. PATRÓN DOMINANTE DE APRENDIZAJE: Identifica el estilo de aprendizaje predominante basado en los análisis
+2. FORTALEZAS COGNITIVAS: Capacidades y habilidades destacadas del estudiante
+3. DESAFÍOS DE APRENDIZAJE: Áreas que requieren atención especial y estrategias adaptadas
+4. FACTORES MOTIVACIONALES: Qué motiva y mantiene el interés del estudiante
+5. ENFOQUES PEDAGÓGICOS RECOMENDADOS: Estrategias específicas de enseñanza
+6. RECOMENDACIONES DE EVALUACIÓN: Métodos de evaluación más efectivos
+7. RECURSOS Y HERRAMIENTAS: Materiales y tecnologías recomendadas
+
+Responde en formato JSON con las siguientes claves:
+{
+  "dominantLearningPattern": "descripción del patrón predominante",
+  "cognitiveStrengths": "fortalezas cognitivas identificadas",
+  "learningChallenges": "desafíos y necesidades especiales",
+  "motivationalFactors": "factores que motivan al estudiante",
+  "recommendedTeachingApproaches": "estrategias pedagógicas recomendadas",
+  "assessmentRecommendations": "métodos de evaluación sugeridos",
+  "resourcesAndTools": "recursos y herramientas recomendadas",
+  "confidenceLevel": número_entre_0_y_100
+}
+`;
+
+      const options = {
+        modelName: 'gpt-4o-mini',
+        maxTokens: 2000,
+        temperature: 0.3, // Menor temperatura para respuestas más consistentes
+      };
+
+      const response = await this.generateWithGitHub(prompt, options);
+      
+      // Intentar parsear la respuesta JSON
+      try {
+        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const profileData = JSON.parse(jsonMatch[0]);
+          return {
+            dominantLearningPattern: profileData.dominantLearningPattern || 'No identificado',
+            cognitiveStrengths: profileData.cognitiveStrengths || 'En evaluación',
+            learningChallenges: profileData.learningChallenges || 'En evaluación',
+            motivationalFactors: profileData.motivationalFactors || 'En evaluación',
+            recommendedTeachingApproaches: profileData.recommendedTeachingApproaches || 'En evaluación',
+            assessmentRecommendations: profileData.assessmentRecommendations || 'En evaluación',
+            resourcesAndTools: profileData.resourcesAndTools || 'En evaluación',
+            confidenceLevel: profileData.confidenceLevel || 75,
+          };
+        }
+      } catch (parseError) {
+        console.warn('⚠️ Could not parse JSON response, using fallback');
+      }
+
+      // Fallback si no se puede parsear el JSON
+      return {
+        dominantLearningPattern: 'Mixto - Requiere análisis adicional',
+        cognitiveStrengths: 'Capacidad de adaptación y perseverancia',
+        learningChallenges: studentInfo.specialNeeds || 'Variabilidad en el rendimiento',
+        motivationalFactors: 'Actividades prácticas y retroalimentación positiva',
+        recommendedTeachingApproaches: 'Enfoque multimodal con adaptaciones específicas',
+        assessmentRecommendations: 'Evaluación formativa continua con múltiples formatos',
+        resourcesAndTools: 'Materiales visuales y actividades interactivas',
+        confidenceLevel: 70,
+      };
+
+    } catch (error) {
+      console.error('❌ Error generating learning profile:', error);
+      
+      // Perfil de fallback basado en la información disponible
+      return {
+        dominantLearningPattern: 'En evaluación - Requiere más evidencia',
+        cognitiveStrengths: 'Capacidad de aprendizaje individual',
+        learningChallenges: data.studentInfo.specialNeeds || 'Necesidades de apoyo individualizado',
+        motivationalFactors: 'Ambiente de apoyo y retroalimentación positiva',
+        recommendedTeachingApproaches: 'Instrucción diferenciada y apoyo individualizado',
+        assessmentRecommendations: 'Evaluación adaptada a las necesidades del estudiante',
+        resourcesAndTools: 'Recursos de apoyo y tecnología asistiva según sea necesario',
+        confidenceLevel: 50,
+      };
+    }
+  }
 }
 
 // Singleton instance

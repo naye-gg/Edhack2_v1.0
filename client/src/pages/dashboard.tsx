@@ -6,6 +6,8 @@ import StatsCard from "@/components/stats-card";
 import StudentCard from "@/components/student-card";
 import EvidenceUpload from "@/components/evidence-upload";
 import { apiRequest } from "@/lib/queryClient";
+import { studentsApi, evidenceApi } from "@/lib/api-auth";
+import { authenticatedFetch } from "@/hooks/useAuth";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,14 +50,17 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/stats"],
+    queryFn: () => authenticatedFetch("/api/stats").then((res: Response) => res.json()),
   });
 
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ["/api/students"],
+    queryFn: studentsApi.getAll,
   });
 
   const { data: recentEvidence = [], isLoading: evidenceLoading } = useQuery<Evidence[]>({
     queryKey: ["/api/evidence"],
+    queryFn: evidenceApi.getAll,
   });
 
   // Mutación para generar perfiles con IA

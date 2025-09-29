@@ -183,7 +183,7 @@ export default function StudentCard({ student, showActions = false, className = 
   };
 
   const calculateAverageScore = () => {
-    const analyzedEvidence = student.evidence?.filter((e: any) => e.analysisResult?.adaptedScore) || [];
+    const analyzedEvidence = Array.isArray(evidences) ? evidences.filter((e: any) => e.analysisResult?.adaptedScore) : [];
     if (analyzedEvidence.length === 0) return null;
     
     const total = analyzedEvidence.reduce((sum: number, e: any) => 
@@ -193,7 +193,7 @@ export default function StudentCard({ student, showActions = false, className = 
   };
 
   const averageScore = calculateAverageScore();
-  const evidenceCount = student.evidence?.length || 0;
+  const evidenceCount = Array.isArray(evidences) ? evidences.length : 0;
 
   return (
     <div className={`flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors ${className}`}>

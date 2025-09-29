@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EvidenceUpload from "@/components/evidence-upload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { evidenceApi } from "@/lib/api-auth";
 import { useToast } from "@/hooks/use-toast";
 
 // Función para exportar el análisis a PDF
@@ -134,6 +135,7 @@ export default function Evidence() {
 
   const { data: evidence = [] as any[], isLoading } = useQuery({
     queryKey: ["/api/evidence"],
+    queryFn: evidenceApi.getAll,
   }) as { data: any[], isLoading: boolean };
 
   const analyzeEvidenceMutation = useMutation({

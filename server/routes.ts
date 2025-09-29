@@ -18,9 +18,10 @@ import {
   evidence,
   teachers,
   students,
+  analysisResults,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { ChatService } from "./chatService";
 
@@ -328,14 +329,25 @@ export function registerRoutes(app: Express): Server {
     try {
       // Get teacher ID from authorization header
       const authHeader = req.headers.authorization;
+      console.log('🔵 Auth header:', authHeader);
       if (!authHeader || !authHeader.startsWith('teacher_')) {
         return res.status(401).json({ error: "Autorización requerida" });
       }
 
-      const teacherId = authHeader.split('_')[1];
+      // Token format: teacher_TEACHERID_TIMESTAMP
+      const parts = authHeader.split('_');
+      const teacherId = parts.slice(1, -1).join('_'); // Get everything between teacher_ and _timestamp
+      console.log('🔵 Extracted teacherId:', teacherId);
       
       // Get students for this teacher only
       const teacherStudents = await db.select().from(students).where(eq(students.teacherId, teacherId));
+      console.log('🔵 Found students:', teacherStudents.length, teacherStudents);
+      
+      // Disable caching for this response
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       res.json(teacherStudents);
     } catch (error) {
       console.error('Error fetching students:', error);
@@ -457,10 +469,48 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Evidence routes
-  app.get("/api/evidence", async (_req, res) => {
+  app.get("/api/evidence", async (req, res) => {
     try {
-      const evidence = await storage.getAllEvidence();
-      res.json(evidence);
+      // Get teacher ID from authorization header
+      const authHeader = req.headers.authorization;
+      console.log('🔵 All Evidence Auth header:', authHeader);
+      if (!authHeader || !authHeader.startsWith('teacher_')) {
+        return res.status(401).json({ error: "Autorización requerida" });
+      }
+
+      // Token format: teacher_TEACHERID_TIMESTAMP
+      const parts = authHeader.split('_');
+      const teacherId = parts.slice(1, -1).join('_'); // Get everything between teacher_ and _timestamp
+      console.log('🔵 All Evidence Extracted teacherId:', teacherId);
+
+      // Get all evidence from students of this teacher
+      const teacherStudents = await db.select().from(students).where(eq(students.teacherId, teacherId));
+      const studentIds = teacherStudents.map((s: any) => s.id);
+      
+      if (studentIds.length === 0) {
+        return res.json([]); // No students, no evidence
+      }
+
+      // Get evidence for all students of this teacher (simplified)
+      let allEvidence = [];
+      for (const studentId of studentIds) {
+        const studentEvidence = await storage.getEvidenceByStudent(studentId);
+        allEvidence.push(...studentEvidence);
+      }
+      
+      // Sort by creation date (newest first)  
+      const sortedEvidence = allEvidence.sort((a: any, b: any) => 
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+
+      console.log('🔵 Found total evidence for teacher:', sortedEvidence.length);
+      
+      // Disable caching
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
+      res.json(sortedEvidence);
     } catch (error) {
       console.error('Error fetching evidence:', error);
       res.status(500).json({ error: "Failed to fetch evidence" });
@@ -469,7 +519,39 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/students/:studentId/evidence", async (req, res) => {
     try {
+      // Get teacher ID from authorization header
+      const authHeader = req.headers.authorization;
+      console.log('🔵 Evidence Auth header:', authHeader);
+      if (!authHeader || !authHeader.startsWith('teacher_')) {
+        return res.status(401).json({ error: "Autorización requerida" });
+      }
+
+      // Token format: teacher_TEACHERID_TIMESTAMP
+      const parts = authHeader.split('_');
+      const teacherId = parts.slice(1, -1).join('_'); // Get everything between teacher_ and _timestamp
+      console.log('🔵 Evidence Extracted teacherId:', teacherId);
+
+      // Verify that the student belongs to this teacher
+      const student = await db.select().from(students)
+        .where(eq(students.id, req.params.studentId))
+        .limit(1);
+      
+      if (student.length === 0) {
+        return res.status(404).json({ error: "Estudiante no encontrado" });
+      }
+      
+      if (student[0].teacherId !== teacherId) {
+        return res.status(403).json({ error: "No tienes acceso a las evidencias de este estudiante" });
+      }
+
       const evidence = await storage.getEvidenceByStudent(req.params.studentId);
+      console.log('🔵 Found evidence for student:', evidence.length, evidence);
+      
+      // Disable caching
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       res.json(evidence);
     } catch (error) {
       console.error('Error fetching student evidence:', error);
@@ -662,14 +744,45 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Dashboard stats
-  app.get("/api/stats", async (_req, res) => {
+  app.get("/api/stats", async (req, res) => {
     try {
-      const students = await storage.getAllStudents();
+      // Verificar autenticación y obtener teacherId
+      const authHeader = req.headers.authorization;
+      console.log('🔵 Stats Auth header:', authHeader);
+      
+      if (!authHeader) {
+        return res.status(401).json({ error: "No authorization header" });
+      }
+
+      // Token format: teacher_TEACHERID_TIMESTAMP
+      const parts = authHeader.split('_');
+      const teacherId = parts.slice(1, -1).join('_');
+      console.log('🔵 Stats Extracted teacherId:', teacherId);
+      
+      if (!teacherId) {
+        return res.status(401).json({ error: "Invalid authorization token" });
+      }
+
+      // Obtener todos los datos y filtrar por teacherId
+      const allStudents = await storage.getAllStudents();
       const allEvidence = await storage.getAllEvidence();
       
+      // Filtrar estudiantes por teacherId
+      const students = allStudents.filter(student => student.teacherId === teacherId);
+      console.log('🔵 Stats - All students:', allStudents.length);
+      console.log('🔵 Stats - Filtered students:', students.length, students.map(s => ({id: s.id, name: s.name, teacherId: s.teacherId})));
+      
+      // Filtrar evidencias por studentIds del profesor
+      const studentIds = students.map(s => s.id);
+      const teacherEvidence = allEvidence.filter(evidence => 
+        evidence.studentId && studentIds.includes(evidence.studentId)
+      );
+      console.log('🔵 Stats - All evidence:', allEvidence.length);
+      console.log('🔵 Stats - Teacher evidence:', teacherEvidence.length);
+      
       const totalStudents = students.length;
-      const totalEvidence = allEvidence.length;
-      const analyzedEvidence = allEvidence.filter(e => e.isAnalyzed).length;
+      const totalEvidence = teacherEvidence.length;
+      const analyzedEvidence = teacherEvidence.filter((e: any) => e.isAnalyzed).length;
       const pendingEvidence = totalEvidence - analyzedEvidence;
       
       // Calcular perfiles generados (estudiantes con perspectiva del docente)
