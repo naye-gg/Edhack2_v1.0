@@ -4,14 +4,14 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "client/dist",
   "functions": {
-    "api/index.ts": {
+    "api/*.ts": {
       "maxDuration": 30
     }
   },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/index.ts"
+      "dest": "/api/$1"
     },
     {
       "handle": "filesystem"
@@ -20,5 +20,9 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "SESSION_SECRET": "@session_secret"
+  }
 }

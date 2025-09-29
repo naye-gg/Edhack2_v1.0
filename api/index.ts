@@ -42,5 +42,5 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Export for Vercel
+// Export for Vercel serverless functions
 export default app;
