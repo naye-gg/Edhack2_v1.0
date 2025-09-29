@@ -79,21 +79,13 @@ export class DatabaseStorage implements IStorage {
 
     if (!student) return undefined;
 
-    const studentEvidence = await db
-      .select()
-      .from(evidence)
-      .leftJoin(analysisResults, eq(evidence.id, analysisResults.evidenceId))
-      .where(eq(evidence.studentId, id))
-      .orderBy(desc(evidence.createdAt));
+    const studentEvidence = await this.getEvidenceByStudent(id);
 
     return {
       ...student.students,
       teacherPerspective: student.teacher_perspectives || undefined,
       learningProfile: student.learning_profiles || undefined,
-      evidence: studentEvidence.map(e => ({
-        ...e.evidence,
-        analysisResult: e.analysis_results || undefined,
-      })),
+      evidence: studentEvidence,
     };
   }
 
@@ -108,21 +100,13 @@ export class DatabaseStorage implements IStorage {
     const result: StudentWithRelations[] = [];
     
     for (const student of studentsData) {
-      const studentEvidence = await db
-        .select()
-        .from(evidence)
-        .leftJoin(analysisResults, eq(evidence.id, analysisResults.evidenceId))
-        .where(eq(evidence.studentId, student.students.id))
-        .orderBy(desc(evidence.createdAt));
+      const studentEvidence = await this.getEvidenceByStudent(student.students.id);
 
       result.push({
         ...student.students,
         teacherPerspective: student.teacher_perspectives || undefined,
         learningProfile: student.learning_profiles || undefined,
-        evidence: studentEvidence.map(e => ({
-          ...e.evidence,
-          analysisResult: e.analysis_results || undefined,
-        })),
+        evidence: studentEvidence,
       });
     }
 
@@ -203,8 +187,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(evidence.studentId, studentId))
       .orderBy(desc(evidence.createdAt));
 
-    return evidenceData.map(e => ({
+    return evidenceData.map((e: any) => ({
       ...e.evidence,
+      // Convert snake_case to camelCase for frontend compatibility
+      studentId: e.evidence.student_id,
+      taskTitle: e.evidence.task_title,
+      completionDate: e.evidence.completion_date,
+      evidenceType: e.evidence.evidence_type,
+      fileName: e.evidence.file_name,
+      filePath: e.evidence.file_path,
+      standardRubric: e.evidence.standard_rubric,
+      evaluatedCompetencies: e.evidence.evaluated_competencies,
+      originalInstructions: e.evidence.original_instructions,
+      timeSpent: e.evidence.time_spent,
+      reportedDifficulties: e.evidence.reported_difficulties,
+      isAnalyzed: e.evidence.is_analyzed,
+      createdAt: e.evidence.created_at,
       student: e.students || undefined,
       analysisResult: e.analysis_results || undefined,
     }));
@@ -218,8 +216,22 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(analysisResults, eq(evidence.id, analysisResults.evidenceId))
       .orderBy(desc(evidence.createdAt));
 
-    return evidenceData.map(e => ({
+    return evidenceData.map((e: any) => ({
       ...e.evidence,
+      // Convert snake_case to camelCase for frontend compatibility
+      studentId: e.evidence.student_id,
+      taskTitle: e.evidence.task_title,
+      completionDate: e.evidence.completion_date,
+      evidenceType: e.evidence.evidence_type,
+      fileName: e.evidence.file_name,
+      filePath: e.evidence.file_path,
+      standardRubric: e.evidence.standard_rubric,
+      evaluatedCompetencies: e.evidence.evaluated_competencies,
+      originalInstructions: e.evidence.original_instructions,
+      timeSpent: e.evidence.time_spent,
+      reportedDifficulties: e.evidence.reported_difficulties,
+      isAnalyzed: e.evidence.is_analyzed,
+      createdAt: e.evidence.created_at,
       student: e.students || undefined,
       analysisResult: e.analysis_results || undefined,
     }));

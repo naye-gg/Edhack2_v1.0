@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Eye, Edit, BrainCircuit, MessageCircle, Sparkles, Save, User, Brain, FileText } from "lucide-react";
@@ -11,9 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StudentChat from "./student-chat";
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { authenticatedFetch } from "@/hooks/useAuth";
 
 interface StudentCardProps {
   student: any;
@@ -41,21 +42,29 @@ export default function StudentCard({ student, showActions = false, className = 
   // Query para obtener el perfil de aprendizaje
   const { data: learningProfile, isLoading: profileLoading } = useQuery({
     queryKey: [`/api/students/${student.id}/learning-profile`],
+    queryFn: async () => {
+      const response = await authenticatedFetch(`/api/students/${student.id}/learning-profile`);
+      if (!response.ok) return null;
+      return response.json();
+    },
     enabled: showProfile,
   });
 
   // Query para obtener evidencias
   const { data: evidences = [] } = useQuery({
     queryKey: [`/api/students/${student.id}/evidence`],
-    enabled: showProfile,
+    queryFn: async () => {
+      const response = await authenticatedFetch(`/api/students/${student.id}/evidence`);
+      if (!response.ok) return [];
+      return response.json();
+    },
   });
 
   // Mutación para generar perfil con IA
   const generateProfileMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/students/${student.id}/generate-ai-profile`, {
+      const response = await authenticatedFetch(`/api/students/${student.id}/generate-ai-profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
       if (!response.ok) throw new Error('Error generating profile');
       return response.json();
@@ -79,9 +88,8 @@ export default function StudentCard({ student, showActions = false, className = 
   // Mutación para actualizar perfil
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch(`/api/students/${student.id}/learning-profile`, {
+      const response = await authenticatedFetch(`/api/students/${student.id}/learning-profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, studentId: student.id }),
       });
       if (!response.ok) throw new Error('Error updating profile');
@@ -119,7 +127,7 @@ export default function StudentCard({ student, showActions = false, className = 
     }
   });
 
-  const analyzedEvidences = Array.isArray(evidences) ? evidences.filter((e: any) => e.isAnalyzed || e.is_analyzed) : [];
+  const analyzedEvidences = Array.isArray(evidences) ? evidences.filter((e: any) => e.isAnalyzed) : [];
   const canGenerateProfile = analyzedEvidences.length > 0;
   const getInitials = (name: string) => {
     return name

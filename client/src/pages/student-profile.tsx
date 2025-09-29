@@ -147,7 +147,7 @@ export default function StudentProfile() {
     updateProfileMutation.mutate(data);
   };
 
-  const analyzedEvidences = evidences.filter((e: any) => e.isAnalyzed || e.is_analyzed);
+  const analyzedEvidences = evidences.filter((e: any) => e.isAnalyzed);
   const canGenerateProfile = analyzedEvidences.length > 0;
 
   if (studentLoading || profileLoading || perspectiveLoading || evidencesLoading) {
