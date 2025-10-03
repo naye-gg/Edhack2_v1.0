@@ -18,7 +18,12 @@ build/
 # Uploads
 uploads/
 
-# Database
+# Database files (local development only)
+*.sqlite
+*.sqlite3
+*.db
+database.sqlite
+server/database.sqlite
 migrations/
 
 # IDE
