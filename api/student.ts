@@ -1,18 +1,18 @@
 export default async function handler(req: any, res: any) {
+  // Set CORS headers
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
-    // Set CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    
-    if (req.method === "OPTIONS") {
-      return res.status(200).end();
-    }
-
-    if (req.method !== "GET") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
     // Get student ID from query parameters
     const { studentId } = req.query;
     
@@ -22,15 +22,14 @@ export default async function handler(req: any, res: any) {
 
     console.log(`👤 Student individual get for ID: ${studentId}`);
 
-    // Simple raw query approach
+    if (!process.env.DATABASE_URL) {
+      return res.status(500).json({ error: "Database URL not configured" });
+    }
+
     const { Pool, neonConfig } = await import('@neondatabase/serverless');
     const ws = await import('ws');
 
     neonConfig.webSocketConstructor = ws.default || ws;
-    
-    if (!process.env.DATABASE_URL) {
-      return res.status(500).json({ error: "Database URL not configured" });
-    }
 
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
