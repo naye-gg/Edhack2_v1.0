@@ -9,26 +9,28 @@ import {
   aiAnalysisHistory,
   studentChats,
   chatMessages,
+  teachers,
   type Student,
-  type InsertStudent,
+  type NewStudent,
   type TeacherPerspective,
-  type InsertTeacherPerspective,
+  type NewTeacherPerspective,
   type Evidence,
-  type InsertEvidence,
+  type NewEvidence,
   type AnalysisResult,
-  type InsertAnalysisResult,
+  type NewAnalysisResult,
   type LearningProfile,
-  type InsertLearningProfile,
-  type TeacherDocument,
-  type InsertTeacherDocument,
-  type AiGeneratedResource,
-  type InsertAiGeneratedResource,
-  type AiAnalysisHistory,
-  type InsertAiAnalysisHistory,
-  type StudentChat,
-  type InsertStudentChat,
+  type NewLearningProfile,
   type ChatMessage,
+  type NewChatMessage,
+  type StudentChat,
+  type NewStudentChat,
+  type InsertStudent,
+  type InsertTeacherPerspective,
+  type InsertEvidence,
+  type InsertAnalysisResult,
+  type InsertLearningProfile,
   type InsertChatMessage,
+  type InsertStudentChat,
   type StudentWithRelations,
   type EvidenceWithRelations,
 } from "@shared/schema";
@@ -243,7 +245,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(studentChats)
       .where(eq(studentChats.studentId, studentId))
-      .orderBy(desc(studentChats.updatedAt));
+      .orderBy(desc(studentChats.createdAt));
   }
 
   async createStudentChat(chat: InsertStudentChat): Promise<StudentChat> {
@@ -259,7 +261,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(chatMessages)
       .where(eq(chatMessages.chatId, chatId))
-      .orderBy(chatMessages.createdAt);
+      .orderBy(chatMessages.timestamp);
   }
 
   async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
@@ -273,7 +275,7 @@ export class DatabaseStorage implements IStorage {
   async updateChatTimestamp(chatId: string): Promise<void> {
     await db
       .update(studentChats)
-      .set({ updatedAt: new Date().toISOString() })
+      .set({ updatedAt: new Date() })
       .where(eq(studentChats.id, chatId));
   }
 
