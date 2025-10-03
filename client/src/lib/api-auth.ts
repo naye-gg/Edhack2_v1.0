@@ -1,7 +1,9 @@
 import { authenticatedFetch } from "../hooks/useAuth";
+import { buildApiUrl } from "./api-config";
 
 // Helper function for authenticated API requests
 async function authApiRequest(method: string, url: string, data?: any) {
+  const fullUrl = buildApiUrl(url);
   const options: RequestInit = {
     method,
     headers: {
@@ -14,13 +16,19 @@ async function authApiRequest(method: string, url: string, data?: any) {
     options.body = JSON.stringify(data);
   }
   
-  return authenticatedFetch(url, options);
+  return authenticatedFetch(fullUrl, options);
+}
+
+// Helper for GET requests
+async function authenticatedGet(url: string) {
+  const fullUrl = buildApiUrl(url);
+  return authenticatedFetch(fullUrl).then((res: Response) => res.json());
 }
 
 // Students API
 export const studentsApi = {
-  getAll: () => authenticatedFetch("/api/students").then((res: Response) => res.json()),
-  getById: (id: string) => authenticatedFetch(`/api/student?studentId=${id}`).then((res: Response) => res.json()),
+  getAll: () => authenticatedGet("/api/students"),
+  getById: (id: string) => authenticatedGet(`/api/student?studentId=${id}`),
   create: (data: any) => authApiRequest("POST", "/api/students", data).then((res: Response) => res.json()),
   update: (id: string, data: any) => authApiRequest("PUT", `/api/student?studentId=${id}`, data).then((res: Response) => res.json()),
   delete: (id: string) => authApiRequest("DELETE", `/api/student?studentId=${id}`),
@@ -71,5 +79,5 @@ export const profilesApi = {
 
 // Stats API
 export const statsApi = {
-  getDashboard: () => authenticatedFetch("/api/stats").then((res: Response) => res.json()),
+  getDashboard: () => authenticatedGet("/api/stats"),
 };
