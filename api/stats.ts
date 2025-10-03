@@ -33,41 +33,70 @@ export default async function handler(req: any, res: any) {
     });
     const db = drizzle(pool);
 
-    // Define schema inline for reliability
-    const { pgTable, text, timestamp, boolean, serial, jsonb } = await import('drizzle-orm/pg-core');
+    // Define schema inline matching the real database structure
+    const { pgTable, text, timestamp, boolean, integer, real } = await import('drizzle-orm/pg-core');
     
     const students = pgTable('students', {
-      id: serial('id').primaryKey(),
+      id: text('id').primaryKey(),
+      teacherId: text('teacher_id').notNull(),
       name: text('name').notNull(),
-      age: text('age'),
-      grade: text('grade'),
-      teacherId: text('teacher_id'),
+      age: integer('age').notNull(),
+      grade: text('grade').notNull(),
+      mainSubjects: text('main_subjects').notNull(),
+      specialNeeds: text('special_needs'),
       createdAt: timestamp('created_at').defaultNow(),
-      learningProfile: jsonb('learning_profile')
+      updatedAt: timestamp('updated_at').defaultNow(),
     });
 
     const evidence = pgTable('evidence', {
-      id: serial('id').primaryKey(),
-      taskTitle: text('task_title').notNull(),
+      id: text('id').primaryKey(),
       studentId: text('student_id').notNull(),
+      taskTitle: text('task_title').notNull(),
+      subject: text('subject').notNull(),
+      completionDate: timestamp('completion_date').defaultNow(),
+      evidenceType: text('evidence_type').notNull(),
+      fileName: text('file_name'),
+      filePath: text('file_path'),
+      fileSize: integer('file_size'),
+      standardRubric: text('standard_rubric').notNull(),
+      evaluatedCompetencies: text('evaluated_competencies').notNull(),
+      originalInstructions: text('original_instructions').notNull(),
+      timeSpent: integer('time_spent'),
+      reportedDifficulties: text('reported_difficulties'),
       isAnalyzed: boolean('is_analyzed').default(false),
       createdAt: timestamp('created_at').defaultNow(),
-      analysisResult: jsonb('analysis_result')
+    });
+
+    const learningProfiles = pgTable('learning_profiles', {
+      id: text('id').primaryKey(),
+      studentId: text('student_id').notNull(),
+      dominantLearningPattern: text('dominant_learning_pattern').notNull(),
+      cognitiveStrengths: text('cognitive_strengths').notNull(),
+      learningChallenges: text('learning_challenges').notNull(),
+      motivationalFactors: text('motivational_factors').notNull(),
+      recommendedTeachingApproaches: text('recommended_teaching_approaches').notNull(),
+      assessmentRecommendations: text('assessment_recommendations').notNull(),
+      resourcesAndTools: text('resources_and_tools').notNull(),
+      confidenceLevel: real('confidence_level').notNull(),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
     });
 
     // Get all data for stats
     const studentsResult = await db.select().from(students);
     const evidenceResult = await db.select().from(evidence);
+    const profilesResult = await db.select().from(learningProfiles);
     
     console.log('📊 Raw stats data:', { 
       students: studentsResult.length, 
-      evidence: evidenceResult.length 
+      evidence: evidenceResult.length,
+      profiles: profilesResult.length
     });
 
     const totalStudents = studentsResult.length;
     const totalEvidence = evidenceResult.length;
     const analyzedEvidence = evidenceResult.filter((e: any) => e.isAnalyzed).length;
-    const profilesGenerated = studentsResult.filter((s: any) => s.learningProfile).length;
+    const profilesGenerated = profilesResult.length; // Usar la tabla separada
     const pendingEvidence = evidenceResult.filter((e: any) => !e.isAnalyzed).length;
 
     // Simple modalityBreakdown for now

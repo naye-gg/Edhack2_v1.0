@@ -33,16 +33,26 @@ export default async function handler(req: any, res: any) {
     });
     const db = drizzle(pool);
 
-    // Define schema inline
-    const { pgTable, text, timestamp, boolean, serial, jsonb } = await import('drizzle-orm/pg-core');
+    // Define schema inline matching the real database structure
+    const { pgTable, text, timestamp, boolean, integer } = await import('drizzle-orm/pg-core');
     
     const evidence = pgTable('evidence', {
-      id: serial('id').primaryKey(),
-      taskTitle: text('task_title').notNull(),
+      id: text('id').primaryKey(),
       studentId: text('student_id').notNull(),
+      taskTitle: text('task_title').notNull(),
+      subject: text('subject').notNull(),
+      completionDate: timestamp('completion_date').defaultNow(),
+      evidenceType: text('evidence_type').notNull(),
+      fileName: text('file_name'),
+      filePath: text('file_path'),
+      fileSize: integer('file_size'),
+      standardRubric: text('standard_rubric').notNull(),
+      evaluatedCompetencies: text('evaluated_competencies').notNull(),
+      originalInstructions: text('original_instructions').notNull(),
+      timeSpent: integer('time_spent'),
+      reportedDifficulties: text('reported_difficulties'),
       isAnalyzed: boolean('is_analyzed').default(false),
       createdAt: timestamp('created_at').defaultNow(),
-      analysisResult: jsonb('analysis_result')
     });
 
     const evidenceResult = await db.select().from(evidence);

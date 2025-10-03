@@ -33,17 +33,19 @@ export default async function handler(req: any, res: any) {
     });
     const db = drizzle(pool);
 
-    // Define schema inline
-    const { pgTable, text, timestamp, boolean, serial, jsonb } = await import('drizzle-orm/pg-core');
+    // Define schema inline matching the real database structure
+    const { pgTable, text, timestamp, integer } = await import('drizzle-orm/pg-core');
     
     const students = pgTable('students', {
-      id: serial('id').primaryKey(),
+      id: text('id').primaryKey(),
+      teacherId: text('teacher_id').notNull(),
       name: text('name').notNull(),
-      age: text('age'),
-      grade: text('grade'),
-      teacherId: text('teacher_id'),
+      age: integer('age').notNull(),
+      grade: text('grade').notNull(),
+      mainSubjects: text('main_subjects').notNull(),
+      specialNeeds: text('special_needs'),
       createdAt: timestamp('created_at').defaultNow(),
-      learningProfile: jsonb('learning_profile')
+      updatedAt: timestamp('updated_at').defaultNow(),
     });
 
     const studentsResult = await db.select().from(students);
