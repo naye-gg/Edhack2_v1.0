@@ -48,16 +48,44 @@ export default async function handler(req: any, res: any) {
       const { z } = await import('zod');
       const ws = await import('ws');
       
-      // Import schema with error handling
+      // Import schema with error handling - try multiple paths for Vercel
       let teachersSchema;
       try {
-        const schema = await import('../shared/schema');
+        // Try different import paths for Vercel compatibility
+        let schema;
+        try {
+          schema = await import('../shared/schema.js');
+        } catch {
+          try {
+            schema = await import('../shared/schema');
+          } catch {
+            try {
+              schema = await import('./shared/schema.js');
+            } catch {
+              try {
+                schema = await import('./shared/schema');
+              } catch {
+                // Try relative to root
+                schema = await import('shared/schema');
+              }
+            }
+          }
+        }
         teachersSchema = schema.teachers;
       } catch (importError) {
         console.error('❌ Schema import failed:', importError);
-        return res.status(500).json({ 
-          error: "Database schema not available",
-          details: importError.message
+        
+        // Fallback: define schema inline for Vercel compatibility
+        const { pgTable, text, timestamp, boolean, serial } = await import('drizzle-orm/pg-core');
+        
+        teachersSchema = pgTable('teachers', {
+          id: serial('id').primaryKey(),
+          name: text('name').notNull(),
+          email: text('email').notNull().unique(),
+          password: text('password').notNull(),
+          isActive: boolean('is_active').default(true),
+          createdAt: timestamp('created_at').defaultNow(),
+          lastLogin: timestamp('last_login')
         });
       }
 
