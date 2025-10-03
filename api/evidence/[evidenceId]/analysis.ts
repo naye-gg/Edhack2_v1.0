@@ -124,7 +124,7 @@ export default async function handler(req: any, res: any) {
         cognitivePatternsObserved: "Pensamiento secuencial, preferencia por ejemplos visuales, procesamiento analítico",
         strategicRecommendations: "Reforzar práctica con ejercicios similares, usar organizadores gráficos, proporcionar feedback específico",
         confidenceScore: 0.78,
-        aiModelUsed: "FlexiEval-Analysis-v1.0"
+        aiModelUsed: "FlexiAdapt-Analysis-v1.0"
       };
 
       const analysisData = {

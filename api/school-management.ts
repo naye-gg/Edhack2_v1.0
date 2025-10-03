@@ -162,7 +162,7 @@ export default async function handler(req: any, res: any) {
     console.log(`🏫 System stats retrieved: ${totalStudents[0].count} students, ${totalEvidence[0].count} evidence`);
 
     return res.status(200).json({
-      message: "FlexiEval System Status",
+      message: "FlexiAdapt System Status",
       systemHealth: {
         status: "operational",
         analysisRate: Math.round(analysisRate),

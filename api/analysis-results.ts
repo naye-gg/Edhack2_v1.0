@@ -153,8 +153,9 @@ export default async function handler(req: any, res: any) {
         areasForImprovement: areasForImprovement || "Pendiente de evaluación",
         cognitivePatternsObserved: cognitivePatternsObserved || "Patrones por identificar",
         strategicRecommendations: strategicRecommendations || "Recomendaciones por generar",
+        resourcesAndTools: "Organizadores gráficos, material manipulativo, tecnología educativa",
         confidenceScore: confidenceScore || 0.5,
-        aiModelUsed: aiModelUsed || "FlexiEval-Analysis-v1.0",
+        aiModelUsed: aiModelUsed || "FlexiAdapt-Analysis-v1.0",
         createdAt: new Date()
       };
 
