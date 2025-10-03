@@ -270,7 +270,7 @@ export function registerRoutes(app: Express): Server {
 
       // Update last login
       await db.update(teachers)
-        .set({ lastLogin: new Date().toISOString() })
+        .set({ lastLogin: new Date() })
         .where(eq(teachers.id, teacher.id));
 
       // Remove password from response
@@ -698,30 +698,30 @@ export function registerRoutes(app: Express): Server {
       
       let profile;
       if (existingProfile) {
-        // Actualizar perfil existente - necesitaremos este método
+        // Actualizar perfil existente
         const updatedData = {
-          dominantLearningPattern: aiProfile.dominantLearningPattern,
-          detectedSpecialAbilities: aiProfile.detectedSpecialAbilities,
-          identifiedNeeds: aiProfile.identifiedNeeds,
-          recommendedTeachingStrategies: aiProfile.recommendedTeachingStrategies,
-          suggestedEvaluationInstruments: aiProfile.suggestedEvaluationInstruments,
-          personalizedDidacticMaterials: aiProfile.personalizedDidacticMaterials,
-          curricularAdaptationPlan: aiProfile.curricularAdaptationPlan,
-          updatedAt: new Date().toISOString()
+          dominantLearningPattern: aiProfile.dominantLearningPattern || existingProfile.dominantLearningPattern,
+          cognitiveStrengths: aiProfile.cognitiveStrengths || existingProfile.cognitiveStrengths,
+          learningChallenges: aiProfile.learningChallenges || existingProfile.learningChallenges,
+          motivationalFactors: aiProfile.motivationalFactors || existingProfile.motivationalFactors,
+          recommendedTeachingApproaches: aiProfile.recommendedTeachingApproaches || existingProfile.recommendedTeachingApproaches,
+          assessmentRecommendations: aiProfile.assessmentRecommendations || existingProfile.assessmentRecommendations,
+          resourcesAndTools: aiProfile.resourcesAndTools || existingProfile.resourcesAndTools,
+          confidenceLevel: aiProfile.confidenceLevel || existingProfile.confidenceLevel
         };
-        profile = { ...existingProfile, ...updatedData };
-        // TODO: Agregar método updateLearningProfile en storage
+        profile = await storage.updateLearningProfile(existingProfile.id, updatedData);
       } else {
         // Crear nuevo perfil
         profile = await storage.createLearningProfile({
           studentId,
-          dominantLearningPattern: aiProfile.dominantLearningPattern,
-          detectedSpecialAbilities: aiProfile.detectedSpecialAbilities,
-          identifiedNeeds: aiProfile.identifiedNeeds,
-          recommendedTeachingStrategies: aiProfile.recommendedTeachingStrategies,
-          suggestedEvaluationInstruments: aiProfile.suggestedEvaluationInstruments,
-          personalizedDidacticMaterials: aiProfile.personalizedDidacticMaterials,
-          curricularAdaptationPlan: aiProfile.curricularAdaptationPlan
+          dominantLearningPattern: aiProfile.dominantLearningPattern || "No definido",
+          cognitiveStrengths: aiProfile.detectedSpecialAbilities || "No identificadas",
+          learningChallenges: aiProfile.identifiedNeeds || "No identificadas",
+          motivationalFactors: aiProfile.motivationalFactors || "No identificados",
+          recommendedTeachingApproaches: aiProfile.recommendedTeachingStrategies || "No definidas",
+          assessmentRecommendations: aiProfile.suggestedEvaluationInstruments || "No definidas",
+          resourcesAndTools: aiProfile.personalizedDidacticMaterials || "No definidos",
+          confidenceLevel: aiProfile.confidenceLevel || 0.8
         });
       }
 
@@ -1086,14 +1086,31 @@ export function registerRoutes(app: Express): Server {
       const { studentId } = req.params;
       const { title } = req.body;
 
-      // Validate that student exists
+      // Extract teacherId from authorization token
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: "No authorization header" });
+      }
+
+      const parts = authHeader.split('_');
+      const teacherId = parts.slice(1, -1).join('_');
+      if (!teacherId) {
+        return res.status(401).json({ error: "Invalid authorization token" });
+      }
+
+      // Validate that student exists and belongs to teacher
       const student = await storage.getStudent(studentId);
       if (!student) {
         return res.status(404).json({ error: "Student not found" });
       }
 
+      if (student.teacherId !== teacherId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
       const chat = await storage.createStudentChat({
         studentId,
+        teacherId,
         title: title || `Chat - ${student.name}`
       });
 
