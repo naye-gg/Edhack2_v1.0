@@ -1,7 +1,27 @@
 import express from 'express';
 import type { Request, Response } from 'express';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { eq } from 'drizzle-orm';
+import { teachers } from '../shared/schema';
+import { z } from 'zod';
+import ws from "ws";
 
 const app = express();
+
+// Database setup
+neonConfig.webSocketConstructor = ws;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL!,
+  max: 1,
+});
+const db = drizzle(pool);
+
+// Validation schema
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
@@ -38,13 +58,55 @@ app.get("/api/test", (_req: Request, res: Response) => {
   });
 });
 
-app.post("/api/auth/login", (req: Request, res: Response) => {
-  console.log('Login attempt:', req.body);
-  res.json({ 
-    error: "Database connection in progress",
-    message: "This is a minimal handler for testing. Full functionality coming soon.",
-    receivedData: req.body
-  });
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  try {
+    console.log('🟢 Login attempt:', req.body);
+    
+    // Validate input
+    const loginData = loginSchema.parse(req.body);
+    
+    // Find teacher by email
+    const teacherResults = await db.select().from(teachers).where(eq(teachers.email, loginData.email));
+    const [teacher] = teacherResults;
+    
+    if (!teacher) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    // Check password (plain text for now)
+    if (teacher.password !== loginData.password) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    // Check if teacher is active
+    if (!teacher.isActive) {
+      return res.status(401).json({ error: "Cuenta desactivada" });
+    }
+
+    // Update last login
+    await db.update(teachers)
+      .set({ lastLogin: new Date() })
+      .where(eq(teachers.id, teacher.id));
+
+    // Generate session token
+    const sessionToken = `teacher_${teacher.id}_${Date.now()}`;
+    
+    // Remove password from response
+    const { password, ...teacherResponse } = teacher;
+    
+    res.json({ 
+      teacher: teacherResponse, 
+      token: sessionToken,
+      message: "Inicio de sesión exitoso" 
+    });
+    
+  } catch (error) {
+    console.error('❌ Login error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Datos inválidos", details: error.errors });
+    }
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
 });
 
 // Catch all
