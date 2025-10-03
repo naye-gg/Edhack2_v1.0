@@ -1,24 +1,21 @@
 {
   "version": 2,
-  "installCommand": "npm install",
-  "buildCommand": "npm run vercel-build",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm run vercel-build",
   "outputDirectory": "client/dist",
   "functions": {
-    "api/*.ts": {
+    "api/index.ts": {
       "maxDuration": 30
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "source": "/api/(.*)",
+      "destination": "/api"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
     }
   ]
 }
