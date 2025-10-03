@@ -1,11 +1,8 @@
-[phases.setup]
-cmds = ["cd server"]
-
 [phases.install]
-cmds = ["cd server && npm install --only=production"]
+cmds = ["npm install --only=production"]
 
 [phases.build]
-cmds = ["echo 'No build step needed for simple server'"]
+cmds = ["echo 'No build step needed - simple Express server'"]
 
 [start]
-cmd = "cd server && npm start"
+cmd = "npm start"
