@@ -155,7 +155,6 @@ export const studentChats = pgTable("student_chats", {
   teacherId: text("teacher_id").references(() => teachers.id).notNull(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const chatMessages = pgTable("chat_messages", {
@@ -257,18 +256,6 @@ export const insertChatMessageSchema = z.object({
   content: z.string().min(1, "El contenido del mensaje es requerido"),
 });
 
-// Esquemas adicionales que se usan en routes.ts
-export const loginTeacherSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(1, "La contraseña es requerida"),
-});
-
-export const insertStudentChatSchema = z.object({
-  studentId: z.string().min(1, "Student ID es requerido"),
-  teacherId: z.string().min(1, "Teacher ID es requerido"),
-  title: z.string().min(1, "El título es requerido"),
-});
-
 // Tipos TypeScript inferidos
 export type Teacher = typeof teachers.$inferSelect;
 export type NewTeacher = typeof teachers.$inferInsert;
@@ -284,25 +271,3 @@ export type LearningProfile = typeof learningProfiles.$inferSelect;
 export type NewLearningProfile = typeof learningProfiles.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type NewChatMessage = typeof chatMessages.$inferInsert;
-export type StudentChat = typeof studentChats.$inferSelect;
-export type NewStudentChat = typeof studentChats.$inferInsert;
-
-// Aliases para compatibilidad con código existente
-export type InsertStudent = NewStudent;
-export type InsertTeacherPerspective = NewTeacherPerspective;
-export type InsertEvidence = NewEvidence;
-export type InsertAnalysisResult = NewAnalysisResult;
-export type InsertLearningProfile = NewLearningProfile;
-export type InsertChatMessage = NewChatMessage;
-export type InsertStudentChat = NewStudentChat;
-
-// Tipos con relaciones
-export type StudentWithRelations = Student & {
-  teacherPerspective?: TeacherPerspective;
-  evidence?: Evidence[];
-};
-
-export type EvidenceWithRelations = Evidence & {
-  student?: Student;
-  analysisResult?: AnalysisResult;
-};

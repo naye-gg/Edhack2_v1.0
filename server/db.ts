@@ -5,6 +5,7 @@ import { createClient } from '@libsql/client';
 import ws from "ws";
 import * as schema from "@shared/schema";
 import { config } from "./config";
+import { logger } from "./logger.js";
 
 // Initialize database based on DATABASE_URL
 let db: any;
@@ -17,38 +18,50 @@ if (config.DATABASE_URL.startsWith('file:') || config.DATABASE_URL.includes('.sq
   });
   db = drizzle(client, { schema });
   
-  console.log('🗄️  Using SQLite database for development');
+  logger.info('Using SQLite database for development');
 } else {
   // PostgreSQL/Neon database for production
-  neonConfig.webSocketConstructor = ws;
-  
-  pool = new Pool({ 
-    connectionString: config.DATABASE_URL,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-  });
-  
-  db = drizzleNeon({ client: pool, schema });
-  
-  console.log('🗄️  Using PostgreSQL/Neon database');
+  try {
+    // Configuración simple para Neon
+    neonConfig.webSocketConstructor = ws;
+    
+    // Usar cliente directo en lugar de pool para debug
+    const client = new Pool({
+      connectionString: config.DATABASE_URL,
+      max: 1, // Solo una conexión para debug
+      idleTimeoutMillis: 10000,
+    });
+    
+    db = drizzleNeon(client, { schema });
+    pool = client;
+    
+    logger.info('Using PostgreSQL/Neon database');
+    logger.debug('Connection string format', config.DATABASE_URL.replace(/:[^:]*@/, ':***@'));
+  } catch (error) {
+    logger.error('Error connecting to Neon database:', error);
+    throw error;
+  }
 }
 
 export { db };
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Closing database connection...');
-  if (pool) {
-    await pool.end();
-  }
-  process.exit(0);
-});
+let isShuttingDown = false;
 
-process.on('SIGTERM', async () => {
-  console.log('Closing database connection...');
+const gracefulShutdown = async () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  
+  logger.info('Closing database connection...');
   if (pool) {
-    await pool.end();
+    try {
+      await pool.end();
+    } catch (error) {
+      console.error('Error closing pool:', error);
+    }
   }
   process.exit(0);
-});
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
