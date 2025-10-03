@@ -9,7 +9,7 @@ export default async function handler(req: any, res: any) {
       return res.status(200).end();
     }
 
-    // Get evidence ID from query parameters
+    // Get evidence ID from query parameters or handle general analysis routes
     const { evidenceId } = req.query;
     
     if (!evidenceId) {
