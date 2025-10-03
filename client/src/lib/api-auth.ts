@@ -19,11 +19,11 @@ async function authApiRequest(method: string, url: string, data?: any) {
 
 // Students API
 export const studentsApi = {
-  getAll: () => authenticatedFetch("/api/student-operations").then((res: Response) => res.json()),
-  getById: (id: string) => authenticatedFetch(`/api/student-operations?studentId=${id}`).then((res: Response) => res.json()),
-  create: (data: any) => authApiRequest("POST", "/api/student-operations", data).then((res: Response) => res.json()),
-  update: (id: string, data: any) => authApiRequest("PUT", `/api/student-operations?studentId=${id}`, data).then((res: Response) => res.json()),
-  delete: (id: string) => authApiRequest("DELETE", `/api/student-operations?studentId=${id}`),
+  getAll: () => authenticatedFetch("/api/students").then((res: Response) => res.json()),
+  getById: (id: string) => authenticatedFetch(`/api/student?studentId=${id}`).then((res: Response) => res.json()),
+  create: (data: any) => authApiRequest("POST", "/api/students", data).then((res: Response) => res.json()),
+  update: (id: string, data: any) => authApiRequest("PUT", `/api/student?studentId=${id}`, data).then((res: Response) => res.json()),
+  delete: (id: string) => authApiRequest("DELETE", `/api/student?studentId=${id}`),
 };
 
 // Teacher Perspectives API

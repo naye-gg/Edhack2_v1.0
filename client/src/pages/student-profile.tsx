@@ -39,7 +39,7 @@ export default function StudentProfile() {
 
   // Query para obtener información del estudiante
     const { data: student, isLoading: studentLoading } = useQuery({
-    queryKey: [`/api/student-operations/${studentId}`],
+    queryKey: [`/api/student/${studentId}`],
     queryFn: () => studentsApi.getById(studentId),
   });
 

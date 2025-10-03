@@ -54,7 +54,7 @@ export default function Dashboard() {
   });
 
   const { data: studentsData = { students: [] }, isLoading: studentsLoading } = useQuery({
-    queryKey: ["/api/student-operations"],
+    queryKey: ["/api/students"],
     queryFn: studentsApi.getAll,
   });
 
