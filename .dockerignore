@@ -1,13 +1,14 @@
-# Ignore everything except server
-*
-!server/
-!railway.toml
-
-# Ignore common artifacts
-node_modules
-.git
-.env
-.env.local
+# Ignore frontend and artifacts  
+client/
+node_modules/
+.git/
+.next/
+dist/
+build/
 *.log
 .DS_Store
 Thumbs.db
+
+# Keep server and config files
+!server/
+!railway.toml
