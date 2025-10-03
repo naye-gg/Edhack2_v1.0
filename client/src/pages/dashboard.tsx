@@ -53,10 +53,12 @@ export default function Dashboard() {
     queryFn: () => authenticatedFetch("/api/stats").then((res: Response) => res.json()),
   });
 
-  const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
-    queryKey: ["/api/students"],
+  const { data: studentsData = { students: [] }, isLoading: studentsLoading } = useQuery({
+    queryKey: ["/api/student-operations"],
     queryFn: studentsApi.getAll,
   });
+
+  const students = studentsData.students || [];
 
   const { data: recentEvidence = [], isLoading: evidenceLoading } = useQuery<Evidence[]>({
     queryKey: ["/api/evidence"],
@@ -70,7 +72,7 @@ export default function Dashboard() {
       const results = [];
       for (const student of students) {
         try {
-          const response = await apiRequest("POST", `/api/students/${student.id}/generate-ai-profile`, {});
+          const response = await apiRequest("POST", `/api/student-operations?studentId=${student.id}&action=generate-ai-profile`, {});
           results.push({ student: student.name, success: true, data: response });
         } catch (error) {
           results.push({ student: student.name, success: false, error });

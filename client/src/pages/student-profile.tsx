@@ -38,26 +38,26 @@ export default function StudentProfile() {
   const queryClient = useQueryClient();
 
   // Query para obtener información del estudiante
-  const { data: student, isLoading: studentLoading } = useQuery({
-    queryKey: [`/api/students/${studentId}`],
-    enabled: !!studentId,
+    const { data: student, isLoading: studentLoading } = useQuery({
+    queryKey: [`/api/student-operations/${studentId}`],
+    queryFn: () => studentsApi.getById(studentId),
   });
 
   // Query para obtener el perfil de aprendizaje
   const { data: learningProfile, isLoading: profileLoading } = useQuery({
-    queryKey: [`/api/students/${studentId}/learning-profile`],
+    queryKey: [`/api/student-operations/${studentId}/learning-profile`],
     enabled: !!studentId,
   });
 
   // Query para obtener perspectiva del docente
   const { data: teacherPerspective, isLoading: perspectiveLoading } = useQuery({
-    queryKey: [`/api/students/${studentId}/perspective`],
+    queryKey: [`/api/student-operations/${studentId}/perspective`],
     enabled: !!studentId,
   });
 
   // Query para obtener evidencias
   const { data: evidences = [], isLoading: evidencesLoading } = useQuery({
-    queryKey: [`/api/students/${studentId}/evidence`],
+    queryKey: [`/api/student-operations/${studentId}/evidence`],
     enabled: !!studentId,
   });
 

@@ -19,30 +19,30 @@ async function authApiRequest(method: string, url: string, data?: any) {
 
 // Students API
 export const studentsApi = {
-  getAll: () => authenticatedFetch("/api/students").then((res: Response) => res.json()),
-  getById: (id: string) => authenticatedFetch(`/api/students/${id}`).then((res: Response) => res.json()),
-  create: (data: any) => authApiRequest("POST", "/api/students", data).then((res: Response) => res.json()),
-  update: (id: string, data: any) => authApiRequest("PUT", `/api/students/${id}`, data).then((res: Response) => res.json()),
-  delete: (id: string) => authApiRequest("DELETE", `/api/students/${id}`),
+  getAll: () => authenticatedFetch("/api/student-operations").then((res: Response) => res.json()),
+  getById: (id: string) => authenticatedFetch(`/api/student-operations?studentId=${id}`).then((res: Response) => res.json()),
+  create: (data: any) => authApiRequest("POST", "/api/student-operations", data).then((res: Response) => res.json()),
+  update: (id: string, data: any) => authApiRequest("PUT", `/api/student-operations?studentId=${id}`, data).then((res: Response) => res.json()),
+  delete: (id: string) => authApiRequest("DELETE", `/api/student-operations?studentId=${id}`),
 };
 
 // Teacher Perspectives API
 export const perspectivesApi = {
-  get: (studentId: string) => authenticatedFetch(`/api/students/${studentId}/perspective`).then((res: Response) => res.json()),
+  get: (studentId: string) => authenticatedFetch(`/api/student-operations?studentId=${studentId}&action=teacher-perspectives`).then((res: Response) => res.json()),
   create: (studentId: string, data: any) => 
-    authApiRequest("POST", `/api/students/${studentId}/perspective`, data).then((res: Response) => res.json()),
+    authApiRequest("POST", `/api/student-operations?studentId=${studentId}&action=teacher-perspectives`, data).then((res: Response) => res.json()),
   update: (studentId: string, data: any) => 
-    authApiRequest("PUT", `/api/students/${studentId}/perspective`, data).then((res: Response) => res.json()),
+    authApiRequest("PUT", `/api/student-operations?studentId=${studentId}&action=teacher-perspectives`, data).then((res: Response) => res.json()),
 };
 
 // Evidence API
 export const evidenceApi = {
   getAll: () => authenticatedFetch("/api/evidence").then((res: Response) => res.json()),
-  getByStudent: (studentId: string) => 
-    authenticatedFetch(`/api/students/${studentId}/evidence`).then((res: Response) => res.json()),
+  getByStudentId: (studentId: string) => 
+    authenticatedFetch(`/api/student-operations?studentId=${studentId}&action=evidence`).then((res: Response) => res.json()),
   upload: async (studentId: string, formData: FormData) => {
     const token = localStorage.getItem('teacherToken');
-    const response = await fetch(`/api/students/${studentId}/evidence`, {
+    const response = await fetch(`/api/upload`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -58,15 +58,15 @@ export const evidenceApi = {
     return response.json();
   },
   analyze: (evidenceId: string) => 
-    authApiRequest("POST", `/api/evidence/${evidenceId}/ai-analyze`).then((res: Response) => res.json()),
+    authApiRequest("POST", `/api/evidence/${evidenceId}/analysis`).then((res: Response) => res.json()),
 };
 
 // Learning Profiles API
 export const profilesApi = {
   get: (studentId: string) => 
-    authenticatedFetch(`/api/students/${studentId}/learning-profile`).then((res: Response) => res.json()),
+    authenticatedFetch(`/api/student-operations?studentId=${studentId}&action=learning-profile`).then((res: Response) => res.json()),
   generate: (studentId: string) => 
-    authApiRequest("POST", `/api/students/${studentId}/generate-ai-profile`).then((res: Response) => res.json()),
+    authApiRequest("POST", `/api/student-operations?studentId=${studentId}&action=generate-ai-profile`).then((res: Response) => res.json()),
 };
 
 // Stats API
