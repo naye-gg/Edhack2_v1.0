@@ -1,8 +1,3 @@
-[build]
-builder = "NIXPACKS"
-
-[build.config]
-nixpacksConfig = "./nixpacks.toml"
-
 [deploy]
 workingDir = "server"
+startCommand = "npm start"

@@ -1,0 +1,13 @@
+# Ignore everything except server
+*
+!server/
+!railway.toml
+
+# Ignore common artifacts
+node_modules
+.git
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db

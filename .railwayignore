@@ -1,10 +1,15 @@
-# Ignore everything at root level for Railway deployment
-/*
+# Railway should ignore frontend and build artifacts
+client/
+node_modules/
+.next/
+.vercel/
+dist/
+build/
+*.sqlite
+.env.local
+.env.production
+temp_*
+api/
 
-# Only include server directory
-!/server/
-!/server/**
-
-# Keep Railway config files at root
+# Keep only server directory and config
 !railway.toml
-!nixpacks.toml
