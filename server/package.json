@@ -2,11 +2,11 @@
   "name": "flexiadapt-server",
   "version": "1.0.0",
   "description": "FlexiAdapt Backend Server",
-  "main": "simple-server.js",
+  "main": "ultra-simple-server.js",
   "scripts": {
-    "start": "node simple-server.js",
+    "start": "node ultra-simple-server.js",
     "build": "echo 'No build needed'",
-    "dev": "node simple-server.js"
+    "dev": "node ultra-simple-server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
