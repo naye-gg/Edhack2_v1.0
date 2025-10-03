@@ -26,6 +26,8 @@ app.use((req, res, next) => {
   }
 });
 
+import { logger } from "./logger.js";
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -40,16 +42,13 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      let errorMsg = undefined;
+      if (capturedJsonResponse && res.statusCode >= 400) {
+        const jsonStr = JSON.stringify(capturedJsonResponse);
+        errorMsg = jsonStr.length > 60 ? jsonStr.slice(0, 59) + "…" : jsonStr;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+      
+      logger.api(req.method, path, res.statusCode, duration, errorMsg);
     }
   });
 
@@ -59,12 +58,12 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    logger.error(`Unhandled error on ${req.method} ${req.path}:`, { status, message, stack: err.stack });
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
@@ -80,12 +79,18 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // Solo iniciar el servidor si no estamos en Vercel
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    const port = parseInt(process.env.PORT || '5000', 10);
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      logger.info(`Server running on port ${port}`);
+    });
+  }
 })();
+
+// Exportar la app para Vercel
+export { app };
