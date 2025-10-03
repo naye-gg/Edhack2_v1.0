@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Login endpoint with database connection
-    if (req.method === "POST" && (pathname === "/login" || pathname === "/api/login")) {
+    if (req.method === "POST" && (pathname === "/login" || pathname === "/api/login" || pathname === "/api/auth/login")) {
       console.log('🔐 Login attempt detected');
       
       // Dynamic imports for database functionality
