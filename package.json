@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "cd client && npm run build",
-    "vercel-build": "cd client && npm run build",
+    "build": "cd client && pnpm run build",
+    "vercel-build": "cd client && pnpm run build",
     "start": "NODE_ENV=production node server/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
@@ -128,6 +128,7 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
+    "vercel": "^48.2.0",
     "vite": "^5.4.20"
   },
   "optionalDependencies": {
