@@ -202,6 +202,25 @@ export function registerRoutes(app: Express): Server {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Test endpoint for debugging
+  app.get("/api/test", (_req, res) => {
+    res.json({ 
+      message: "Test endpoint working", 
+      environment: process.env.NODE_ENV,
+      hasDB: !!process.env.DATABASE_URL,
+      timestamp: new Date().toISOString() 
+    });
+  });
+
+  app.post("/api/test-login", (req, res) => {
+    console.log('🔍 Test login called with body:', req.body);
+    res.json({ 
+      message: "Test login endpoint working",
+      receivedData: req.body,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Authentication routes for teachers
   console.log('🟢 Registering auth routes...');
   
