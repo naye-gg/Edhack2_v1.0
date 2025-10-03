@@ -1,13 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs", "npm"]
+nixPkgs = ["nodejs_18", "npm"]
 
 [phases.install]
-dependsOn = ["setup"]
-cmds = ["npm ci --only=production"]
+cmds = ["npm install --production"]
 
 [phases.build]
-dependsOn = ["install"]
-cmds = ["echo 'No build step needed'"]
+cmds = ["echo 'Server ready - no build needed'"]
 
 [start]
 cmd = "node simple-server.js"

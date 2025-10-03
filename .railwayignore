@@ -1,0 +1,10 @@
+# Ignore everything at root level for Railway deployment
+/*
+
+# Only include server directory
+!/server/
+!/server/**
+
+# Keep Railway config files at root
+!railway.toml
+!nixpacks.toml
