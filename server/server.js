@@ -14,19 +14,23 @@ app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
 // Simple health check
 app.get("/", (req, res) => {
+  console.log("Health check called");
   res.json({ 
     message: "FlexiAdapt Backend API", 
     status: "running",
     version: "1.0.0",
+    timestamp: new Date().toISOString(),
+    env: {
+      port: PORT,
+      nodeEnv: process.env.NODE_ENV || 'unknown',
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasGeminiKey: !!process.env.GEMINI_API_KEY
+    },
     endpoints: {
       students: "/api/students",
-      auth: "/api/auth/login",
+      auth: "/api/auth/login", 
       stats: "/api/stats",
       evidence: "/api/evidence"
-    },
-    database: {
-      connected: !!process.env.DATABASE_URL,
-      url: process.env.DATABASE_URL ? "configured" : "missing"
     }
   });
 });
@@ -101,10 +105,13 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 FlexiAdapt Backend running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/`);
-  console.log(`🔗 Frontend should use: https://your-railway-app.railway.app as API_BASE_URL`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+  console.log(`💾 Database: ${process.env.DATABASE_URL ? 'configured' : 'missing'}`);
+  console.log(`� AI Keys: Gemini=${!!process.env.GEMINI_API_KEY}, GitHub=${!!process.env.GITHUB_MODELS_API_KEY}`);
+  console.log(`📊 Health check available at: /`);
+  console.log(`🔗 API Base URL: https://edhack2v10-production.up.railway.app`);
 });
 
 module.exports = app;
